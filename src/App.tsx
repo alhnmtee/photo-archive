@@ -1,10 +1,9 @@
-
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { Login } from './pages/login';
 import { Dashboard } from './pages/Dashboard';
+import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
-import { TestPage } from './pages/TestPage';
 
 function App() {
   return (
@@ -20,8 +19,15 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/test" element={<TestPage />} />
         </Routes>
       </Router>
     </AuthProvider>

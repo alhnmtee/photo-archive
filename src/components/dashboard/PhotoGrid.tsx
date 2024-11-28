@@ -30,9 +30,14 @@ interface Photo {
 interface PhotoGridProps {
   year?: number;
   userId?: string;
+  onGridRefreshed?: () => void;
 }
 
-export const PhotoGrid: React.FC<PhotoGridProps> = ({ year, userId }) => {
+export const PhotoGrid: React.FC<PhotoGridProps> = ({ 
+  year, 
+  userId,
+  onGridRefreshed 
+}) => {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,8 +46,9 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({ year, userId }) => {
   const fetchPhotos = async () => {
     try {
       setLoading(true);
-      const fetchedPhotos = await photoService.getPhotos({ year, userId }) as Photo[];
-      setPhotos(fetchedPhotos);
+      const fetchedPhotos = await photoService.getPhotos({ year, userId });
+      setPhotos(fetchedPhotos as Photo[]);
+      onGridRefreshed?.();
     } catch (error) {
       console.error('Error fetching photos:', error);
     } finally {
@@ -114,7 +120,6 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({ year, userId }) => {
         ))}
       </SimpleGrid>
 
-      {/* Fotoğraf Detay Modal */}
       <Modal isOpen={isOpen} onClose={onClose} size="xl">
         <ModalOverlay />
         <ModalContent>

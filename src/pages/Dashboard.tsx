@@ -9,7 +9,8 @@ import {
 import { AddIcon } from '@chakra-ui/icons';
 import { DashboardLayout } from '../components/layouts/DashboardLayout';
 import { PhotoGrid } from '../components/dashboard/PhotoGrid';
-
+import { PhotoUploadModal } from '../components/dashboard/PhotoUploadModel';
+import { useState } from 'react';
 
 export const Dashboard = () => {
   const { 
@@ -17,6 +18,16 @@ export const Dashboard = () => {
     onOpen: onUploadOpen, 
     onClose: onUploadClose 
   } = useDisclosure();
+
+  const [shouldRefreshGrid, setShouldRefreshGrid] = useState(false);
+
+  const handleUploadSuccess = () => {
+    setShouldRefreshGrid(true);
+  };
+
+  const handleGridRefreshed = () => {
+    setShouldRefreshGrid(false);
+  };
 
   return (
     <DashboardLayout>
@@ -32,10 +43,17 @@ export const Dashboard = () => {
           </Button>
         </HStack>
 
-        <PhotoGrid />
-      </Box>
+        <PhotoGrid 
+          key={shouldRefreshGrid ? 'refresh' : 'normal'} 
+          onGridRefreshed={handleGridRefreshed}
+        />
 
-     
+        <PhotoUploadModal 
+          isOpen={isUploadOpen} 
+          onClose={onUploadClose}
+          onUploadSuccess={handleUploadSuccess}
+        />
+      </Box>
     </DashboardLayout>
   );
 };
