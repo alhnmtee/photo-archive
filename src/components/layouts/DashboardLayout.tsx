@@ -1,4 +1,3 @@
-// src/components/layouts/DashboardLayout.tsx
 import React from 'react';
 import {
   Box,
@@ -12,6 +11,7 @@ import {
   DrawerCloseButton,
   DrawerHeader,
   DrawerBody,
+  useColorModeValue,
 } from '@chakra-ui/react';
 import { HamburgerIcon } from '@chakra-ui/icons';
 import { DashboardHeader } from '../dashboard/DashboardHeader';
@@ -23,9 +23,10 @@ interface DashboardLayoutProps {
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const bgColor = useColorModeValue('gray.50', 'gray.900');
 
   return (
-    <Box minH="100vh" bg="gray.50">
+    <Box minH="100vh" bg={bgColor}>
       {/* Header */}
       <DashboardHeader />
 
@@ -47,6 +48,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
             onClick={onOpen}
             display={{ base: 'flex', md: 'none' }}
             mb={4}
+            color={useColorModeValue('gray.800', 'white')}
           />
           
           <Drawer
@@ -55,9 +57,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
             onClose={onClose}
           >
             <DrawerOverlay />
-            <DrawerContent>
-              <DrawerCloseButton />
-              <DrawerHeader>Filtreler</DrawerHeader>
+            <DrawerContent bg={useColorModeValue('white', 'gray.800')}>
+              <DrawerCloseButton color={useColorModeValue('gray.800', 'white')} />
+              <DrawerHeader color={useColorModeValue('gray.800', 'white')}>
+                Filtreler
+              </DrawerHeader>
               <DrawerBody>
                 <DashboardSidebar />
               </DrawerBody>

@@ -29,7 +29,8 @@ import {
   InputLeftElement,
   Icon,
   Link,
-  FormErrorMessage
+  FormErrorMessage,
+  useColorModeValue
 } from '@chakra-ui/react';
 import { DashboardLayout } from '../components/layouts/DashboardLayout';
 import { PhotoGrid } from '../components/dashboard/PhotoGrid';
@@ -39,8 +40,15 @@ import { userStatsService } from '../services/userStatsService';
 import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin } from 'react-icons/fa';
 import { userService } from '../services/userService';
 
-
 const Profile = () => {
+    // Renk modu değerleri
+    const bgColor = useColorModeValue('white', 'gray.800');
+    const textColor = useColorModeValue('gray.600', 'gray.300');
+    const headingColor = useColorModeValue('gray.800', 'white');
+    const modalBg = useColorModeValue('white', 'gray.800');
+    const inputBg = useColorModeValue('white', 'gray.700');
+    const disabledInputBg = useColorModeValue('gray.50', 'gray.600');
+
     const { currentUser } = useAuth();
     const toast = useToast();
     const { isOpen: isProfileOpen, onOpen: onProfileOpen, onClose: onProfileClose } = useDisclosure();
@@ -255,7 +263,7 @@ const Profile = () => {
       <Container maxW="container.lg" py={8}>
         <VStack spacing={8} align="stretch">
           {/* Profil Bilgileri */}
-          <Box bg="white" p={6} borderRadius="lg" boxShadow="sm">
+          <Box bg={bgColor} p={6} borderRadius="lg" boxShadow="sm">
             <HStack spacing={6} align="start">
               <Avatar 
                 size="2xl" 
@@ -264,10 +272,10 @@ const Profile = () => {
               />
               <VStack align="start" flex={1} spacing={4}>
                 <Box>
-                  <Text fontSize="2xl" fontWeight="bold">
+                  <Text fontSize="2xl" fontWeight="bold" color={headingColor}>
                     {currentUser?.displayName || 'İsimsiz Kullanıcı'}
                   </Text>
-                  <Text color="gray.600">{currentUser?.email}</Text>
+                  <Text color={textColor}>{currentUser?.email}</Text>
                 </Box>
                 <HStack>
                   <Button colorScheme="blue" size="sm" onClick={onProfileOpen}>
@@ -284,22 +292,22 @@ const Profile = () => {
           {/* İstatistikler */}
           {userStats && (
             <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
-              <Stat bg="white" p={4} borderRadius="lg" boxShadow="sm">
-                <StatLabel>Toplam Fotoğraf</StatLabel>
-                <StatNumber>{userStats.totalPhotos}</StatNumber>
+              <Stat bg={bgColor} p={4} borderRadius="lg" boxShadow="sm">
+                <StatLabel color={textColor}>Toplam Fotoğraf</StatLabel>
+                <StatNumber color={headingColor}>{userStats.totalPhotos}</StatNumber>
               </Stat>
-              <Stat bg="white" p={4} borderRadius="lg" boxShadow="sm">
-                <StatLabel>En Aktif Yıl</StatLabel>
-                <StatNumber>{userStats.mostActiveYear || '-'}</StatNumber>
+              <Stat bg={bgColor} p={4} borderRadius="lg" boxShadow="sm">
+                <StatLabel color={textColor}>En Aktif Yıl</StatLabel>
+                <StatNumber color={headingColor}>{userStats.mostActiveYear || '-'}</StatNumber>
                 {userStats.mostActiveYear && (
-                  <StatHelpText>
+                  <StatHelpText color={textColor}>
                     {userStats.photosByYear[userStats.mostActiveYear]} fotoğraf
                   </StatHelpText>
                 )}
               </Stat>
-              <Stat bg="white" p={4} borderRadius="lg" boxShadow="sm">
-                <StatLabel>Son Yükleme</StatLabel>
-                <StatNumber>
+              <Stat bg={bgColor} p={4} borderRadius="lg" boxShadow="sm">
+                <StatLabel color={textColor}>Son Yükleme</StatLabel>
+                <StatNumber color={headingColor}>
                   {userStats.latestUpload 
                     ? new Date(userStats.latestUpload).toLocaleDateString('tr-TR')
                     : '-'}
@@ -309,8 +317,8 @@ const Profile = () => {
           )}
 
           {/* Sosyal Medya Bağlantıları */}
-          <Box bg="white" p={6} borderRadius="lg" boxShadow="sm">
-            <Text fontSize="lg" fontWeight="bold" mb={4}>
+          <Box bg={bgColor} p={6} borderRadius="lg" boxShadow="sm">
+            <Text fontSize="lg" fontWeight="bold" mb={4} color={headingColor}>
               Sosyal Medya
             </Text>
             <HStack spacing={4}>
@@ -341,7 +349,7 @@ const Profile = () => {
 
           {/* Kullanıcının Fotoğrafları */}
           <Box>
-            <Text fontSize="xl" fontWeight="bold" mb={4}>
+            <Text fontSize="xl" fontWeight="bold" mb={4} color={headingColor}>
               Fotoğraflarım
             </Text>
             <PhotoGrid userId={currentUser?.uid} />
@@ -351,39 +359,47 @@ const Profile = () => {
         {/* Profil Düzenleme Modal */}
         <Modal isOpen={isProfileOpen} onClose={onProfileClose}>
           <ModalOverlay />
-          <ModalContent>
-            <ModalHeader>Profili Düzenle</ModalHeader>
-            <ModalCloseButton />
+          <ModalContent bg={modalBg}>
+            <ModalHeader color={headingColor}>Profili Düzenle</ModalHeader>
+            <ModalCloseButton color={textColor} />
             <ModalBody>
               <VStack spacing={4}>
                 <FormControl>
-                  <FormLabel>İsim</FormLabel>
+                  <FormLabel color={headingColor}>İsim</FormLabel>
                   <Input
                     value={profileData.displayName}
                     onChange={(e) => setProfileData(prev => ({
                       ...prev,
                       displayName: e.target.value
                     }))}
+                    bg={inputBg}
+                    color={headingColor}
                   />
                 </FormControl>
                 <FormControl>
-                  <FormLabel>Profil Fotoğrafı URL</FormLabel>
+                  <FormLabel color={headingColor}>Profil Fotoğrafı URL</FormLabel>
                   <Input
                     value={profileData.photoURL}
                     onChange={(e) => setProfileData(prev => ({
                       ...prev,
                       photoURL: e.target.value
                     }))}
+                    bg={inputBg}
+                    color={headingColor}
                   />
                 </FormControl>
                 <FormControl isReadOnly>
-                  <FormLabel>Email</FormLabel>
-                  <Input value={profileData.email} bg="gray.50" />
+                  <FormLabel color={headingColor}>Email</FormLabel>
+                  <Input 
+                    value={profileData.email} 
+                    bg={disabledInputBg}
+                    color={headingColor}
+                  />
                 </FormControl>
                 
                 {/* Sosyal Medya Bağlantıları */}
                 <FormControl>
-                  <FormLabel>Facebook</FormLabel>
+                  <FormLabel color={headingColor}>Facebook</FormLabel>
                   <InputGroup>
                     <InputLeftElement>
                       <Icon as={FaFacebook} color="blue.600" />
@@ -395,11 +411,13 @@ const Profile = () => {
                         facebook: e.target.value
                       }))}
                       placeholder="Facebook profil URL'i"
+                      bg={inputBg}
+                      color={headingColor}
                     />
                   </InputGroup>
                 </FormControl>
                 <FormControl>
-                  <FormLabel>Twitter</FormLabel>
+                  <FormLabel color={headingColor}>Twitter</FormLabel>
                   <InputGroup>
                     <InputLeftElement>
                       <Icon as={FaTwitter} color="blue.400" />
@@ -411,11 +429,13 @@ const Profile = () => {
                         twitter: e.target.value
                       }))}
                       placeholder="Twitter profil URL'i"
+                      bg={inputBg}
+                      color={headingColor}
                     />
                   </InputGroup>
                 </FormControl>
                 <FormControl>
-                  <FormLabel>Instagram</FormLabel>
+                  <FormLabel color={headingColor}>Instagram</FormLabel>
                   <InputGroup>
                     <InputLeftElement>
                       <Icon as={FaInstagram} color="purple.500" />
@@ -427,11 +447,13 @@ const Profile = () => {
                         instagram: e.target.value
                       }))}
                       placeholder="Instagram profil URL'i"
+                      bg={inputBg}
+                      color={headingColor}
                     />
                   </InputGroup>
                 </FormControl>
                 <FormControl>
-                  <FormLabel>LinkedIn</FormLabel>
+                  <FormLabel color={headingColor}>LinkedIn</FormLabel>
                   <InputGroup>
                     <InputLeftElement>
                       <Icon as={FaLinkedin} color="blue.700" />
@@ -443,6 +465,8 @@ const Profile = () => {
                         linkedin: e.target.value
                       }))}
                       placeholder="LinkedIn profil URL'i"
+                      bg={inputBg}
+                      color={headingColor}
                     />
                   </InputGroup>
                 </FormControl>
@@ -467,13 +491,13 @@ const Profile = () => {
         {/* Şifre Değiştirme Modal */}
         <Modal isOpen={isPasswordOpen} onClose={onPasswordClose}>
           <ModalOverlay />
-          <ModalContent>
-            <ModalHeader>Şifre Değiştir</ModalHeader>
-            <ModalCloseButton />
+          <ModalContent bg={modalBg}>
+            <ModalHeader color={headingColor}>Şifre Değiştir</ModalHeader>
+            <ModalCloseButton color={textColor} />
             <ModalBody>
               <VStack spacing={4}>
                 <FormControl isInvalid={!!passwordErrors.currentPassword}>
-                  <FormLabel>Mevcut Şifre</FormLabel>
+                  <FormLabel color={headingColor}>Mevcut Şifre</FormLabel>
                   <Input
                     type="password"
                     value={passwordData.currentPassword}
@@ -481,6 +505,8 @@ const Profile = () => {
                       ...prev,
                       currentPassword: e.target.value
                     }))}
+                    bg={inputBg}
+                    color={headingColor}
                   />
                   <FormErrorMessage>
                     {passwordErrors.currentPassword}
@@ -488,7 +514,7 @@ const Profile = () => {
                 </FormControl>
 
                 <FormControl isInvalid={!!passwordErrors.newPassword}>
-                  <FormLabel>Yeni Şifre</FormLabel>
+                  <FormLabel color={headingColor}>Yeni Şifre</FormLabel>
                   <Input
                     type="password"
                     value={passwordData.newPassword}
@@ -496,6 +522,8 @@ const Profile = () => {
                       ...prev,
                       newPassword: e.target.value
                     }))}
+                    bg={inputBg}
+                    color={headingColor}
                   />
                   <FormErrorMessage>
                     {passwordErrors.newPassword}
@@ -503,7 +531,7 @@ const Profile = () => {
                 </FormControl>
 
                 <FormControl isInvalid={!!passwordErrors.confirmPassword}>
-                  <FormLabel>Yeni Şifre (Tekrar)</FormLabel>
+                  <FormLabel color={headingColor}>Yeni Şifre (Tekrar)</FormLabel>
                   <Input
                     type="password"
                     value={passwordData.confirmPassword}
@@ -511,6 +539,8 @@ const Profile = () => {
                       ...prev,
                       confirmPassword: e.target.value
                     }))}
+                    bg={inputBg}
+                    color={headingColor}
                   />
                   <FormErrorMessage>
                     {passwordErrors.confirmPassword}

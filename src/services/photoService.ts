@@ -63,5 +63,18 @@ export const photoService = {
 
   getPhotoUrl(year: number, filename: string) {
     return `${STORAGE_API}/photos/${year}/${filename}`;
+  },
+  async deletePhoto(year: number, filename: string, userId: string) {
+    try {
+      const response = await axios.delete(
+        `${STORAGE_API}/photos/${year}/${filename}`,
+        { params: { userId } }
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
-};
+};  
+
+

@@ -9,6 +9,7 @@ import {
   MenuItem,
   Avatar,
   Text,
+  useColorModeValue,
 } from '@chakra-ui/react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +17,9 @@ import { useNavigate } from 'react-router-dom';
 export const DashboardHeader = () => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const textColor = useColorModeValue('gray.800', 'white');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
 
   const handleLogout = async () => {
     try {
@@ -31,10 +35,24 @@ export const DashboardHeader = () => {
   };
 
   return (
-    <Box bg="white" boxShadow="sm" position="sticky" top={0} zIndex={10}>
+    <Box 
+      bg={bgColor} 
+      boxShadow="sm" 
+      position="sticky" 
+      top={0} 
+      zIndex={10}
+      borderBottom="1px"
+      borderColor={borderColor}
+    >
       <Container maxW="container.xl">
         <Flex h="16" alignItems="center" justifyContent="space-between">
-          <Text fontSize="xl" fontWeight="bold" cursor="pointer" onClick={() => navigate('/dashboard')}>
+          <Text 
+            fontSize="xl" 
+            fontWeight="bold" 
+            cursor="pointer" 
+            onClick={() => navigate('/dashboard')}
+            color={textColor}
+          >
             Aile Fotoğraf Arşivi
           </Text>
 
@@ -48,9 +66,21 @@ export const DashboardHeader = () => {
             >
               <Avatar size="sm" src={currentUser?.photoURL || undefined} />
             </MenuButton>
-            <MenuList>
-              <MenuItem onClick={handleProfileClick}>Profil</MenuItem>
-              <MenuItem onClick={handleLogout}>Çıkış Yap</MenuItem>
+            <MenuList bg={bgColor} borderColor={borderColor}>
+              <MenuItem 
+                onClick={handleProfileClick}
+                _hover={{ bg: useColorModeValue('gray.100', 'gray.700') }}
+                color={textColor}
+              >
+                Profil
+              </MenuItem>
+              <MenuItem 
+                onClick={handleLogout}
+                _hover={{ bg: useColorModeValue('gray.100', 'gray.700') }}
+                color={textColor}
+              >
+                Çıkış Yap
+              </MenuItem>
             </MenuList>
           </Menu>
         </Flex>
