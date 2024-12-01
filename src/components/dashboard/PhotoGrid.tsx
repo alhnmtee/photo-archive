@@ -68,11 +68,15 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({
   const toast = useToast();
   const bgColor = useColorModeValue('white', 'gray.800');
   const textColor = useColorModeValue('gray.600', 'gray.300');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
 
   // Silme dialog kontrolü
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const onDeleteClose = () => setIsDeleteOpen(false);
+  const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   const fetchPhotos = async () => {
     try {
@@ -150,6 +154,75 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({
     }
   };
 
+  const togglePhotoSelection = (photo: Photo) => {
+    const newSelection = new Set(selectedPhotos);
+    if (newSelection.has(photo.filename)) {
+      newSelection.delete(photo.filename);
+    } else {
+      newSelection.add(photo.filename);
+    }
+    setSelectedPhotos(newSelection);
+  };
+  
+  // Toplu silme işlemi için yeni fonksiyon
+  const handleBulkDelete = async () => {
+    if (selectedPhotos.size === 0) return;
+  
+    setIsBulkDeleting(true);
+    let successCount = 0;
+    let failCount = 0;
+  
+    try {
+      await Promise.all(
+        Array.from(selectedPhotos).map(async (filename) => {
+          const photo = photos.find(p => p.filename === filename);
+          if (!photo || !currentUser) return;
+  
+          try {
+            await photoService.deletePhoto(photo.year, photo.filename, currentUser.uid);
+            successCount++;
+          } catch (error) {
+            console.error(`Error deleting ${filename}:`, error);
+            failCount++;
+          }
+        })
+      );
+  
+      // Başarı mesajı göster
+      toast({
+        title: 'Silme İşlemi Tamamlandı',
+        description: `${successCount} fotoğraf başarıyla silindi${failCount > 0 ? `, ${failCount} fotoğraf silinemedi` : ''}`,
+        status: successCount > 0 ? 'success' : 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+  
+      // Seçim modunu kapat ve listeyi yenile
+      if (successCount > 0) {
+        setIsSelectionMode(false);
+        setSelectedPhotos(new Set());
+        fetchPhotos();
+      }
+    } catch (error) {
+      console.error('Bulk delete error:', error);
+      toast({
+        title: 'Hata',
+        description: 'Fotoğraflar silinirken bir hata oluştu',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+
+  
+
+
+
+
   const getGridColumns = () => {
     switch (gridSize) {
       case 'small':
@@ -172,13 +245,45 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({
     }
   };
 
-  const renderGridView = () => (
+ // Grid görünümü için yeni render fonksiyonu
+const renderGridView = () => (
+  <Box>
+    {/* Seçim modu kontrolleri */}
+    <HStack spacing={4} mb={4}>
+      <Button
+        size="sm"
+        onClick={() => {
+          setIsSelectionMode(!isSelectionMode);
+          setSelectedPhotos(new Set());
+        }}
+      >
+        {isSelectionMode ? 'Seçimi İptal Et' : 'Fotoğraf Seç'}
+      </Button>
+      {isSelectionMode && (
+        <>
+          <Text fontSize="sm" color="gray.500">
+            {selectedPhotos.size} fotoğraf seçildi
+          </Text>
+          <Button
+            size="sm"
+            colorScheme="red"
+            onClick={handleBulkDelete}
+            isLoading={isBulkDeleting}
+            isDisabled={selectedPhotos.size === 0}
+          >
+            Seçilenleri Sil
+          </Button>
+        </>
+      )}
+    </HStack>
+
+    {/* Fotoğraf grid'i */}
     <SimpleGrid columns={getGridColumns()} spacing={4}>
       {photos.map((photo, index) => (
         <Box
           key={photo.filename}
           cursor="pointer"
-          onClick={() => handlePhotoClick(photo, index)}
+          onClick={() => isSelectionMode ? togglePhotoSelection(photo) : handlePhotoClick(photo, index)}
           borderRadius="lg"
           overflow="hidden"
           position="relative"
@@ -186,6 +291,8 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({
           transition="all 0.2s"
           bg={bgColor}
           boxShadow="sm"
+          border={isSelectionMode && selectedPhotos.has(photo.filename) ? '3px solid' : '1px solid'}
+          borderColor={isSelectionMode && selectedPhotos.has(photo.filename) ? 'blue.500' : borderColor}
         >
           <Image
             src={photoService.getPhotoUrl(photo.year, photo.filename)}
@@ -207,16 +314,48 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({
             </Text>
           </Box>
         </Box>
-      ))}
+      ),)}
     </SimpleGrid>
-  );
+  </Box>
+);
 
-  const renderListView = () => (
+// Liste görünümü için güncelleme
+const renderListView = () => (
+  <Box>
+    {/* Seçim modu kontrolleri */}
+    <HStack spacing={4} mb={4}>
+      <Button
+        size="sm"
+        onClick={() => {
+          setIsSelectionMode(!isSelectionMode);
+          setSelectedPhotos(new Set());
+        }}
+      >
+        {isSelectionMode ? 'Seçimi İptal Et' : 'Fotoğraf Seç'}
+      </Button>
+      {isSelectionMode && (
+        <>
+          <Text fontSize="sm" color="gray.500">
+            {selectedPhotos.size} fotoğraf seçildi
+          </Text>
+          <Button
+            size="sm"
+            colorScheme="red"
+            onClick={handleBulkDelete}
+            isLoading={isBulkDeleting}
+            isDisabled={selectedPhotos.size === 0}
+          >
+            Seçilenleri Sil
+          </Button>
+        </>
+      )}
+    </HStack>
+
     <List spacing={3}>
       {photos.map((photo, index) => (
         <ListItem
           key={photo.filename}
-          onClick={() => handlePhotoClick(photo, index)}
+          onClick={() => isSelectionMode ? togglePhotoSelection(photo) : handlePhotoClick(photo, index)}
           cursor="pointer"
           borderRadius="md"
           overflow="hidden"
@@ -225,6 +364,8 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({
           _hover={{ transform: 'translateX(8px)' }}
           transition="all 0.2s"
           p={4}
+          border={isSelectionMode && selectedPhotos.has(photo.filename) ? '2px solid' : '1px solid'}
+          borderColor={isSelectionMode && selectedPhotos.has(photo.filename) ? 'blue.500' : borderColor}
         >
           <HStack spacing={4}>
             <Image
@@ -249,19 +390,51 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({
         </ListItem>
       ))}
     </List>
-  );
+  </Box>
+);
 
-  const renderTimelineView = () => {
-    const groupedPhotos = photos.reduce((groups, photo) => {
-      const date = format(new Date(photo.uploadDate), 'MMMM yyyy', { locale: tr });
-      if (!groups[date]) {
-        groups[date] = [];
-      }
-      groups[date].push(photo);
-      return groups;
-    }, {} as Record<string, Photo[]>);
+// Timeline görünümü için güncelleme
+const renderTimelineView = () => {
+  const groupedPhotos = photos.reduce((groups, photo) => {
+    const date = format(new Date(photo.uploadDate), 'MMMM yyyy', { locale: tr });
+    if (!groups[date]) {
+      groups[date] = [];
+    }
+    groups[date].push(photo);
+    return groups;
+  }, {} as Record<string, Photo[]>);
 
-    return (
+  return (
+    <Box>
+      {/* Seçim modu kontrolleri */}
+      <HStack spacing={4} mb={4}>
+        <Button
+          size="sm"
+          onClick={() => {
+            setIsSelectionMode(!isSelectionMode);
+            setSelectedPhotos(new Set());
+          }}
+        >
+          {isSelectionMode ? 'Seçimi İptal Et' : 'Fotoğraf Seç'}
+        </Button>
+        {isSelectionMode && (
+          <>
+            <Text fontSize="sm" color="gray.500">
+              {selectedPhotos.size} fotoğraf seçildi
+            </Text>
+            <Button
+              size="sm"
+              colorScheme="red"
+              onClick={handleBulkDelete}
+              isLoading={isBulkDeleting}
+              isDisabled={selectedPhotos.size === 0}
+            >
+              Seçilenleri Sil
+            </Button>
+          </>
+        )}
+      </HStack>
+
       <VStack align="stretch" spacing={8}>
         {Object.entries(groupedPhotos).map(([date, groupPhotos]) => (
           <Box key={date}>
@@ -273,7 +446,7 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({
                 <Box
                   key={photo.filename}
                   cursor="pointer"
-                  onClick={() => handlePhotoClick(photo, index)}
+                  onClick={() => isSelectionMode ? togglePhotoSelection(photo) : handlePhotoClick(photo, index)}
                   borderRadius="lg"
                   overflow="hidden"
                   position="relative"
@@ -281,6 +454,8 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({
                   transition="all 0.2s"
                   bg={bgColor}
                   boxShadow="sm"
+                  border={isSelectionMode && selectedPhotos.has(photo.filename) ? '3px solid' : '1px solid'}
+                  borderColor={isSelectionMode && selectedPhotos.has(photo.filename) ? 'blue.500' : borderColor}
                 >
                   <Image
                     src={photoService.getPhotoUrl(photo.year, photo.filename)}
@@ -307,8 +482,10 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({
           </Box>
         ))}
       </VStack>
-    );
-  };
+    </Box>
+  );
+};
+        <Box/>
 
   if (loading) {
     return (

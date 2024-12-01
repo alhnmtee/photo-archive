@@ -10,6 +10,10 @@ interface PhotoMetadata {
   userName: string;
 }
 
+interface BulkDeletePhoto {
+  year: number;
+  filename: string;
+}
 
 
 export const photoService = {
@@ -74,7 +78,50 @@ export const photoService = {
     } catch (error) {
       throw error;
     }
+  },
+
+  async uploadPhotos(files: File[], metadata: PhotoMetadata) {
+    try {
+      const formData = new FormData();
+      files.forEach(file => {
+        formData.append('photos', file);
+      });
+      
+      formData.append('year', metadata.year.toString());
+      formData.append('description', metadata.description);
+      formData.append('userId', metadata.userId);
+      formData.append('userName', metadata.userName);
+
+      const response = await axios.post(`${STORAGE_API}/upload/bulk`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        }
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Bulk upload error:', error);
+      throw error;
+    }
+  },
+
+  async deletePhotos(photos: BulkDeletePhoto[], userId: string) {
+    try {
+      const response = await axios.request({
+        url: `${STORAGE_API}/photos/bulk`,
+        method: 'DELETE',
+        data: {
+          photos,
+          userId
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Bulk delete error:', error);
+      throw error;
+    }
   }
+
 };  
 
 
