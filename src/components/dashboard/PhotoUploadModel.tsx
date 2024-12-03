@@ -203,7 +203,8 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
               year: parseInt(year),
               description: description || `Fotoğraf ${index + 1}`,
               userId: currentUser.uid,
-              userName: currentUser.displayName || 'Anonim'
+              userName: currentUser.displayName || 'Anonim',
+              uploadDate: ''
             });
 
             clearInterval(progressInterval);
