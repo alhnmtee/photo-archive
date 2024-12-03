@@ -4,6 +4,7 @@ import axios from 'axios';
 const STORAGE_API = import.meta.env.VITE_STORAGE_API_URL;
 
 interface PhotoMetadata {
+  uploadDate: string | number | Date;
   year: number;
   description: string;
   userId: string;

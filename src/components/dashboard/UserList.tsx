@@ -1,5 +1,5 @@
 // src/components/dashboard/UserList.tsx
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   VStack,
   Box,
@@ -7,7 +7,7 @@ import {
   Text,
   HStack,
   useColorModeValue,
-  Divider,
+  //Divider,
   Link as ChakraLink,
   Spinner,
   Input,
@@ -26,7 +26,7 @@ interface UserProfile {
 }
 
 export const UserList = () => {
-  const bgColor = useColorModeValue('white', 'gray.800');
+  //const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const textColor = useColorModeValue('gray.600', 'gray.300');
   const hoverBg = useColorModeValue('gray.50', 'gray.700');

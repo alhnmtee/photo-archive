@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -286,7 +286,7 @@ const Profile = () => {
 
   const handleGridRefreshed = () => {
     if (profileUserId || currentUser?.uid) {
-      const targetUserId = profileUserId || currentUser?.uid;
+      //const targetUserId = profileUserId || currentUser?.uid;
       fetchUserStats(); // İstatistikleri güncelle
     }
   };

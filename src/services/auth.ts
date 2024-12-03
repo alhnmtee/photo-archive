@@ -5,7 +5,7 @@ import {
   GoogleAuthProvider,
   OAuthProvider,
   signOut,
-  getAuth 
+  //getAuth 
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
 

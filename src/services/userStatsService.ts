@@ -36,7 +36,7 @@ export const userStatsService = {
       // En son yükleme tarihini bul
       const latestUpload = photos
         .sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime())[0]
-        ?.uploadDate || null;
+        ?.uploadDate.toString() || null;
 
       return {
         totalPhotos: photos.length,
