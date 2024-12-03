@@ -1,3 +1,4 @@
+// src/contexts/AuthContext.tsx
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../config/firebase';
@@ -7,6 +8,7 @@ import {
   appleSignIn, 
   signOutUser 
 } from '../services/auth';
+import { userService } from '../services/userService';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -24,7 +26,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Kullanıcı oturum açtığında Firestorea kaydetme işlemi
+        await userService.createOrUpdateUser({
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL
+        });
+      }
       setCurrentUser(user);
       setLoading(false);
     });
@@ -35,9 +46,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const value = {
     currentUser,
     loading,
-    signInWithEmail: emailSignIn,
-    signInWithGoogle: googleSignIn,
-    signInWithApple: appleSignIn,
+    signInWithEmail: async (email: string, password: string) => {
+      const user = await emailSignIn(email, password);
+      return user;
+    },
+    signInWithGoogle: async () => {
+      const user = await googleSignIn();
+      return user;
+    },
+    signInWithApple: async () => {
+      const user = await appleSignIn();
+      return user;
+    },
     logout: signOutUser
   };
 

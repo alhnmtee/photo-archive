@@ -16,6 +16,7 @@ import {
 import { HamburgerIcon } from '@chakra-ui/icons';
 import { DashboardHeader } from '../dashboard/DashboardHeader';
 import { DashboardSidebar } from '../dashboard/DashboardSidebar';
+import { UserList } from '../dashboard/UserList';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -30,50 +31,79 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
       {/* Header */}
       <DashboardHeader />
 
-      <Container maxW="container.xl" py={5}>
-        <Flex>
-          {/* Sidebar - Desktop */}
+      {/* Main Content */}
+      <Box w="100%" h="calc(100vh - 64px)" position="relative" overflowY="hidden">
+        <Flex h="100%">
+          {/* Sol Sidebar */}
           <Box
-            display={{ base: 'none', md: 'block' }}
             w="250px"
-            mr={8}
+            h="100%"
+            position="fixed"
+            left={0}
+            top="64px"
+            overflowY="auto"
+            bg={useColorModeValue('white', 'gray.800')}
+            borderRight="1px"
+            borderColor={useColorModeValue('gray.200', 'gray.700')}
+            display={{ base: 'none', md: 'block' }}
+            p={4}
           >
             <DashboardSidebar />
           </Box>
 
-          {/* Sidebar - Mobile */}
+          {/* Mobil Menü */}
           <IconButton
             aria-label="Open menu"
             icon={<HamburgerIcon />}
             onClick={onOpen}
             display={{ base: 'flex', md: 'none' }}
-            mb={4}
-            color={useColorModeValue('gray.800', 'white')}
+            position="fixed"
+            top="70px"
+            left={4}
+            zIndex={2}
           />
           
-          <Drawer
-            isOpen={isOpen}
-            placement="left"
-            onClose={onClose}
-          >
+          <Drawer isOpen={isOpen} placement="left" onClose={onClose}>
             <DrawerOverlay />
-            <DrawerContent bg={useColorModeValue('white', 'gray.800')}>
-              <DrawerCloseButton color={useColorModeValue('gray.800', 'white')} />
-              <DrawerHeader color={useColorModeValue('gray.800', 'white')}>
-                Filtreler
-              </DrawerHeader>
+            <DrawerContent>
+              <DrawerCloseButton />
+              <DrawerHeader>Menu</DrawerHeader>
               <DrawerBody>
                 <DashboardSidebar />
               </DrawerBody>
             </DrawerContent>
           </Drawer>
 
-          {/* Main Content */}
-          <Box flex="1">
+          {/* Ana İçerik */}
+          <Box
+            flex={1}
+            ml={{ base: 0, md: '250px' }}
+            mr={{ base: 0, lg: '300px' }}
+            p={4}
+            overflowY="auto"
+            h="100%"
+          >
             {children}
           </Box>
+
+          {/* Sağ Sidebar - UserList */}
+          <Box
+            w="300px"
+            h="100%"
+            position="fixed"
+            right={0}
+            top="64px"
+            overflowY="auto"
+            bg={useColorModeValue('white', 'gray.800')}
+            borderLeft="1px"
+            borderColor={useColorModeValue('gray.200', 'gray.700')}
+            display={{ base: 'none', lg: 'block' }}
+            p={4}
+          >
+            <UserList />
+          </Box>
         </Flex>
-      </Container>
+      </Box>
     </Box>
   );
 };

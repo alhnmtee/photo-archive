@@ -28,6 +28,7 @@ import {
   List,
   ListItem,
   Avatar,
+  Divider,
 } from '@chakra-ui/react';
 import { ChevronLeftIcon, ChevronRightIcon, DeleteIcon } from '@chakra-ui/icons';
 import { photoService } from '../../services/photoService';
@@ -36,6 +37,7 @@ import { useRef } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { PhotoComments } from './PhotoComments';
 
 interface Photo {
   filename: string;
@@ -81,20 +83,36 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({
   const fetchPhotos = async () => {
     try {
       setLoading(true);
-      const fetchedPhotos = await photoService.getPhotos({ year, userId }) as Photo[];
-      // Tarihe göre sırala
+      console.log('Fetching photos for userId:', userId); 
+      
+      const filters: { year?: number; userId?: string } = {};
+      if (year) filters.year = year;
+      if (userId) filters.userId = userId;
+  
+      const fetchedPhotos = await photoService.getPhotos(filters) as Photo[];
+      console.log('Fetched photos:', fetchedPhotos); 
+  
       const sortedPhotos = [...fetchedPhotos].sort((a, b) => 
         new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
       );
+  
       setPhotos(sortedPhotos);
-      onGridRefreshed?.();
+      if (typeof onGridRefreshed === 'function') {
+        onGridRefreshed(); 
+      }
     } catch (error) {
       console.error('Error fetching photos:', error);
+      toast({
+        title: 'Hata',
+        description: 'Fotoğraflar yüklenirken bir hata oluştu',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
     } finally {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     fetchPhotos();
   }, [year, userId]);
@@ -216,12 +234,6 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({
       setIsBulkDeleting(false);
     }
   };
-
-
-  
-
-
-
 
   const getGridColumns = () => {
     switch (gridSize) {
@@ -686,74 +698,83 @@ const renderTimelineView = () => {
             {selectedPhoto?.description || 'Fotoğraf Detay'}
           </ModalHeader>
           <ModalCloseButton color={textColor} />
-          <ModalBody pb={6}>
-            {selectedPhoto && (
-              <VStack spacing={4}>
-                <Box position="relative" width="100%">
-                  <Image
-                    src={photoService.getPhotoUrl(selectedPhoto.year, selectedPhoto.filename)}
-                    alt={selectedPhoto.description || 'Fotoğraf'}
-                    w="100%"
-                    borderRadius="md"
-                  />
-                  
-                  {/* Gezinme Butonları */}
-                  <HStack 
-                    position="absolute" 
-                    width="100%" 
-                    justify="space-between" 
-                    top="50%" 
-                    transform="translateY(-50%)"
-                    px={4}
-                  >
-                    <IconButton
-                      aria-label="Önceki fotoğraf"
-                      icon={<ChevronLeftIcon />}
-                      onClick={handlePrevPhoto}
-                      isDisabled={selectedPhotoIndex === 0}
-                      colorScheme="blue"
-                      variant="solid"
-                      opacity={0.8}
+            <ModalBody pb={6}>
+              {selectedPhoto && (
+                <VStack spacing={4}>
+                  <Box position="relative" width="100%">
+                    <Image
+                      src={photoService.getPhotoUrl(selectedPhoto.year, selectedPhoto.filename)}
+                      alt={selectedPhoto.description || 'Fotoğraf'}
+                      w="100%"
+                      borderRadius="md"
                     />
-                    <IconButton
-                      aria-label="Sonraki fotoğraf"
-                      icon={<ChevronRightIcon />}
-                      onClick={handleNextPhoto}
-                      isDisabled={selectedPhotoIndex === photos.length - 1}
-                      colorScheme="blue"
-                      variant="solid"
-                      opacity={0.8}
-                    />
-                  </HStack>
-                </Box>
-
-                <Box w="100%">
-                  <HStack justify="space-between" mb={2}>
-                    <Box>
-                      <Text fontSize="sm" color={textColor}>
-                        Yükleyen: {selectedPhoto.userName}
-                      </Text>
-                      <Text fontSize="sm" color={textColor}>
-                        Tarih:{' '}
-                        {format(new Date(selectedPhoto.uploadDate), 'dd MMMM yyyy', { locale: tr })}
-                      </Text>
-                    </Box>
-                    {currentUser && currentUser.uid === selectedPhoto.userId && (
+                    
+                    {/* Gezinme Butonları */}
+                    <HStack 
+                      position="absolute" 
+                      width="100%" 
+                      justify="space-between" 
+                      top="50%" 
+                      transform="translateY(-50%)"
+                      px={4}
+                    >
                       <IconButton
-                        aria-label="Fotoğrafı sil"
-                        icon={<DeleteIcon />}
-                        colorScheme="red"
-                        variant="ghost"
-                        onClick={() => setIsDeleteOpen(true)}
+                        aria-label="Önceki fotoğraf"
+                        icon={<ChevronLeftIcon />}
+                        onClick={handlePrevPhoto}
+                        isDisabled={selectedPhotoIndex === 0}
+                        colorScheme="blue"
+                        variant="solid"
+                        opacity={0.8}
                       />
+                      <IconButton
+                        aria-label="Sonraki fotoğraf"
+                        icon={<ChevronRightIcon />}
+                        onClick={handleNextPhoto}
+                        isDisabled={selectedPhotoIndex === photos.length - 1}
+                        colorScheme="blue"
+                        variant="solid"
+                        opacity={0.8}
+                      />
+                    </HStack>
+                  </Box>
+
+                  <Box w="100%">
+                    <HStack justify="space-between" mb={2}>
+                      <Box>
+                        <Text fontSize="sm" color={textColor}>
+                          Yükleyen: {selectedPhoto.userName}
+                        </Text>
+                        <Text fontSize="sm" color={textColor}>
+                          Tarih:{' '}
+                          {format(new Date(selectedPhoto.uploadDate), 'dd MMMM yyyy', { locale: tr })}
+                        </Text>
+                      </Box>
+                      {currentUser && currentUser.uid === selectedPhoto.userId && (
+                        <IconButton
+                          aria-label="Fotoğrafı sil"
+                          icon={<DeleteIcon />}
+                          colorScheme="red"
+                          variant="ghost"
+                          onClick={() => setIsDeleteOpen(true)}
+                        />
+                      )}
+                    </HStack>
+                    {selectedPhoto.description && (
+                      <Text mt={2} color={textColor}>{selectedPhoto.description}</Text>
                     )}
-                  </HStack>
-                  {selectedPhoto.description && (
-                    <Text mt={2} color={textColor}>{selectedPhoto.description}</Text>
-                  )}
-                </Box>
-              </VStack>
-            )}
+                  </Box>
+
+                  {/* Yorumlar bölümü */}
+                  <Divider my={4} />
+                  <Box w="100%">
+                    <Text fontSize="lg" fontWeight="bold" mb={4} color={textColor}>
+                      Yorumlar
+                    </Text>
+                    <PhotoComments photoId={selectedPhoto.filename} />
+                  </Box>
+                </VStack>
+              )}
           </ModalBody>
         </ModalContent>
       </Modal>

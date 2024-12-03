@@ -10,11 +10,10 @@ interface PhotoMetadata {
   userName: string;
 }
 
-interface BulkDeletePhoto {
-  year: number;
-  filename: string;
+interface PhotoFilters {
+  year?: number;
+  userId?: string;
 }
-
 
 export const photoService = {
   async uploadPhoto(file: File, metadata: PhotoMetadata) {
@@ -26,15 +25,6 @@ export const photoService = {
       formData.append('userId', metadata.userId);
       formData.append('userName', metadata.userName);
 
-      // Debug için log ekleyelim
-      console.log('Uploading to:', `${STORAGE_API}/upload`);
-      console.log('FormData contents:', {
-        year: metadata.year,
-        description: metadata.description,
-        userId: metadata.userId,
-        userName: metadata.userName
-      });
-
       const response = await axios.post(`${STORAGE_API}/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -43,24 +33,30 @@ export const photoService = {
 
       return response.data;
     } catch (error) {
-      const err = error as any;
-      console.error('Upload error details:', err.response?.data || err);
+      console.error('Upload error details:', error);
       throw error;
     }
   },
 
-  async getPhotos(filters?: { year?: number; userId?: string }) {
+  async getPhotos(filters?: PhotoFilters) {
     try {
       const params = new URLSearchParams();
       if (filters?.year) params.append('year', filters.year.toString());
       if (filters?.userId) params.append('userId', filters.userId);
 
-      console.log('Fetching photos from:', `${STORAGE_API}/photos`);
+      console.log('Fetching photos with filters:', filters);
       const response = await axios.get(`${STORAGE_API}/photos`, { params });
-      return response.data;
+    
+      const photos: PhotoMetadata[] = response.data as PhotoMetadata[];
+      console.log('Fetched photos:', photos);
+
+      if (filters?.userId) {
+        return photos.filter((photo: any) => photo.userId === filters.userId);
+      }
+
+      return photos;
     } catch (error) {
-      const err = error as any;
-      console.error('Fetch photos error:', err.response?.data || err);
+      console.error('Fetch photos error:', error);
       throw error;
     }
   },
@@ -68,6 +64,7 @@ export const photoService = {
   getPhotoUrl(year: number, filename: string) {
     return `${STORAGE_API}/photos/${year}/${filename}`;
   },
+
   async deletePhoto(year: number, filename: string, userId: string) {
     try {
       const response = await axios.delete(
@@ -78,50 +75,5 @@ export const photoService = {
     } catch (error) {
       throw error;
     }
-  },
-
-  async uploadPhotos(files: File[], metadata: PhotoMetadata) {
-    try {
-      const formData = new FormData();
-      files.forEach(file => {
-        formData.append('photos', file);
-      });
-      
-      formData.append('year', metadata.year.toString());
-      formData.append('description', metadata.description);
-      formData.append('userId', metadata.userId);
-      formData.append('userName', metadata.userName);
-
-      const response = await axios.post(`${STORAGE_API}/upload/bulk`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        }
-      });
-
-      return response.data;
-    } catch (error) {
-      console.error('Bulk upload error:', error);
-      throw error;
-    }
-  },
-
-  async deletePhotos(photos: BulkDeletePhoto[], userId: string) {
-    try {
-      const response = await axios.request({
-        url: `${STORAGE_API}/photos/bulk`,
-        method: 'DELETE',
-        data: {
-          photos,
-          userId
-        }
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Bulk delete error:', error);
-      throw error;
-    }
   }
-
-};  
-
-
+};

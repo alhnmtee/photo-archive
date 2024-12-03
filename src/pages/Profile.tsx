@@ -39,6 +39,7 @@ import { updateProfile, updatePassword, EmailAuthProvider, reauthenticateWithCre
 import { userStatsService } from '../services/userStatsService';
 import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin } from 'react-icons/fa';
 import { userService } from '../services/userService';
+import { useParams } from 'react-router-dom';
 
 const Profile = () => {
     // Renk modu değerleri
@@ -55,7 +56,9 @@ const Profile = () => {
     const { isOpen: isPasswordOpen, onOpen: onPasswordOpen, onClose: onPasswordClose } = useDisclosure();
     const [loading, setLoading] = useState(false);
     const [userStats, setUserStats] = useState<any>(null);
-  
+
+    
+
     const [profileData, setProfileData] = useState({
       displayName: currentUser?.displayName || '',
       photoURL: currentUser?.photoURL || '',
@@ -65,6 +68,7 @@ const Profile = () => {
       instagram: '',
       linkedin: ''
     });
+    const { userId: profileUserId } = useParams();
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -95,15 +99,16 @@ const Profile = () => {
 
   useEffect(() => {
     const loadUserProfile = async () => {
-      if (!currentUser?.uid) return;
+      const targetUserId = profileUserId || currentUser?.uid;
+      if (!targetUserId) return;
 
       try {
-        const profile = await userService.getUserProfile(currentUser.uid);
+        const profile = await userService.getUserProfile(targetUserId);
         if (profile) {
           setProfileData({
-            displayName: currentUser?.displayName || '',
-            photoURL: currentUser?.photoURL || '',
-            email: currentUser?.email || '',
+            displayName: profile.displayName || '',
+            photoURL: profile.photoURL || '',
+            email: profile.email || '',
             facebook: profile.facebook || '',
             twitter: profile.twitter || '',
             instagram: profile.instagram || '',
@@ -123,7 +128,9 @@ const Profile = () => {
     };
 
     loadUserProfile();
-  }, [currentUser]);
+  }, [profileUserId, currentUser]);
+
+  const isOwnProfile = !profileUserId || profileUserId === currentUser?.uid;
 
   // Stats bilgilerini yükle
   useEffect(() => {
@@ -258,6 +265,33 @@ const Profile = () => {
     }
   };
 
+  const fetchUserStats = async () => {
+    const targetUserId = profileUserId || currentUser?.uid;
+    if (!targetUserId) return;
+    
+    try {
+      const stats = await userStatsService.getUserStats(targetUserId);
+      setUserStats(stats);
+    } catch (error) {
+      console.error('Error fetching user stats:', error);
+      toast({
+        title: 'Hata',
+        description: 'Kullanıcı istatistikleri güncellenirken bir hata oluştu',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleGridRefreshed = () => {
+    if (profileUserId || currentUser?.uid) {
+      const targetUserId = profileUserId || currentUser?.uid;
+      fetchUserStats(); // İstatistikleri güncelle
+    }
+  };
+
+
   return (
     <DashboardLayout>
       <Container maxW="container.lg" py={8}>
@@ -267,27 +301,31 @@ const Profile = () => {
             <HStack spacing={6} align="start">
               <Avatar 
                 size="2xl" 
-                name={currentUser?.displayName || 'Kullanıcı'} 
-                src={currentUser?.photoURL || undefined} 
+                name={profileData.displayName} 
+                src={profileData.photoURL} 
               />
               <VStack align="start" flex={1} spacing={4}>
                 <Box>
                   <Text fontSize="2xl" fontWeight="bold" color={headingColor}>
-                    {currentUser?.displayName || 'İsimsiz Kullanıcı'}
+                    {profileData.displayName}
                   </Text>
-                  <Text color={textColor}>{currentUser?.email}</Text>
+                  <Text color={textColor}>{profileData.email}</Text>
                 </Box>
-                <HStack>
-                  <Button colorScheme="blue" size="sm" onClick={onProfileOpen}>
-                    Profili Düzenle
-                  </Button>
-                  <Button colorScheme="red" size="sm" onClick={onPasswordOpen}>
-                    Şifre Değiştir
-                  </Button>
-                </HStack>
+                {isOwnProfile && (
+                  <HStack>
+                    <Button colorScheme="blue" size="sm" onClick={onProfileOpen}>
+                      Profili Düzenle
+                    </Button>
+                    <Button colorScheme="red" size="sm" onClick={onPasswordOpen}>
+                      Şifre Değiştir
+                    </Button>
+                  </HStack>
+                )}
               </VStack>
             </HStack>
           </Box>
+
+          
 
           {/* İstatistikler */}
           {userStats && (
@@ -350,13 +388,19 @@ const Profile = () => {
           {/* Kullanıcının Fotoğrafları */}
           <Box>
             <Text fontSize="xl" fontWeight="bold" mb={4} color={headingColor}>
-              Fotoğraflarım
+              Fotoğraflar
             </Text>
-            <PhotoGrid userId={currentUser?.uid} />
+            {/* userId'yi doğru şekilde geçir */}
+            <PhotoGrid 
+              userId={profileUserId || currentUser?.uid} 
+              onGridRefreshed={handleGridRefreshed}
+            />
           </Box>
         </VStack>
 
         {/* Profil Düzenleme Modal */}
+        {isOwnProfile && (
+            <>
         <Modal isOpen={isProfileOpen} onClose={onProfileClose}>
           <ModalOverlay />
           <ModalContent bg={modalBg}>
@@ -563,6 +607,8 @@ const Profile = () => {
             </ModalFooter>
           </ModalContent>
         </Modal>
+        </>
+      )}
       </Container>
     </DashboardLayout>
   );
