@@ -2,7 +2,6 @@ import React from 'react';
 import {
   Box,
   Flex,
-  //Container,
   useDisclosure,
   IconButton,
   Drawer,
@@ -20,21 +19,27 @@ import { UserList } from '../dashboard/UserList';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
+  onFilterChange?: (filters: {
+    years: number[];
+    people: string[];
+    searchQuery: string;
+  }) => void;
 }
 
-export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
+export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ 
+  children, 
+  onFilterChange 
+}) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const bgColor = useColorModeValue('gray.50', 'gray.900');
 
   return (
     <Box minH="100vh" bg={bgColor}>
-      {/* Header */}
       <DashboardHeader />
 
-      {/* Main Content */}
       <Box w="100%" h="calc(100vh - 64px)" position="relative" overflowY="hidden">
         <Flex h="100%">
-          {/* Sol Sidebar */}
+          {/* Sol Sidebar - Desktop */}
           <Box
             w="250px"
             h="100%"
@@ -48,10 +53,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
             display={{ base: 'none', md: 'block' }}
             p={4}
           >
-            <DashboardSidebar />
+            <DashboardSidebar onFilterChange={onFilterChange} />
           </Box>
 
-          {/* Mobil Menü */}
+          {/* Mobil Menü Butonu */}
           <IconButton
             aria-label="Open menu"
             icon={<HamburgerIcon />}
@@ -63,13 +68,14 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
             zIndex={2}
           />
           
+          {/* Mobil Menü Drawer */}
           <Drawer isOpen={isOpen} placement="left" onClose={onClose}>
             <DrawerOverlay />
             <DrawerContent>
               <DrawerCloseButton />
               <DrawerHeader>Menu</DrawerHeader>
               <DrawerBody>
-                <DashboardSidebar />
+                <DashboardSidebar onFilterChange={onFilterChange} />
               </DrawerBody>
             </DrawerContent>
           </Drawer>

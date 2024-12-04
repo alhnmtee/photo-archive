@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { 
   Box, 
   Button, 
@@ -12,7 +13,6 @@ import { DashboardLayout } from '../components/layouts/DashboardLayout';
 import { PhotoGrid } from '../components/dashboard/PhotoGrid';
 import { PhotoUploadModal } from '../components/dashboard/PhotoUploadModel';
 import { ThemeControls } from '../components/dashboard/ThemeControl';
-import { useState } from 'react';
 
 export const Dashboard = () => {
   const { 
@@ -22,9 +22,24 @@ export const Dashboard = () => {
   } = useDisclosure();
 
   const [shouldRefreshGrid, setShouldRefreshGrid] = useState(false);
+  const [activeFilters, setActiveFilters] = useState({
+    years: [] as number[],
+    people: [] as string[],
+    searchQuery: ''
+  });
+
   const bgColor = useColorModeValue('white', 'gray.800');
   const textColor = useColorModeValue('gray.800', 'white');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
+
+  const handleFilterChange = (filters: {
+    years: number[];
+    people: string[];
+    searchQuery: string;
+  }) => {
+    console.log('Filters changed:', filters); // Debug için
+    setActiveFilters(filters);
+  };
 
   const handleUploadSuccess = () => {
     setShouldRefreshGrid(true);
@@ -35,7 +50,7 @@ export const Dashboard = () => {
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayout onFilterChange={handleFilterChange}>
       <VStack spacing={6} w="full">
         <Box
           w="full"
@@ -65,6 +80,7 @@ export const Dashboard = () => {
           <PhotoGrid 
             key={shouldRefreshGrid ? 'refresh' : 'normal'} 
             onGridRefreshed={handleGridRefreshed}
+            filters={activeFilters}
           />
         </Box>
 

@@ -29,6 +29,7 @@ import {
   ListItem,
   Avatar,
   Divider,
+  
 } from '@chakra-ui/react';
 import { ChevronLeftIcon, ChevronRightIcon, DeleteIcon } from '@chakra-ui/icons';
 import { photoService } from '../../services/photoService';
@@ -45,20 +46,29 @@ interface Photo {
   description: string;
   userId: string;
   userName: string;
-  url: string;
   uploadDate: string;
+  path: string;
+  size: number;
+  mimetype: string;
+  people: string[];
 }
 
 interface PhotoGridProps {
   year?: number;
   userId?: string;
   onGridRefreshed?: () => void;
+  filters?: {
+    years: number[];
+    people: string[];
+    searchQuery: string;
+  };
 }
 
 export const PhotoGrid: React.FC<PhotoGridProps> = ({ 
   year, 
   userId,
-  onGridRefreshed 
+  onGridRefreshed ,
+  filters,
 }) => {
   const { viewMode, gridSize } = useTheme();
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -83,22 +93,52 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({
   const fetchPhotos = async () => {
     try {
       setLoading(true);
-      console.log('Fetching photos for userId:', userId); 
       
-      const filters: { year?: number; userId?: string } = {};
-      if (year) filters.year = year;
-      if (userId) filters.userId = userId;
+      const baseFilters: { year?: number; userId?: string } = {};
+      if (year) baseFilters.year = year;
+      if (userId) baseFilters.userId = userId;
   
-      const fetchedPhotos = await photoService.getPhotos(filters) as Photo[];
-      console.log('Fetched photos:', fetchedPhotos); 
+      const response = await photoService.getPhotos(baseFilters);
+      let fetchedPhotos = response.map(photo => ({
+        ...photo,
+        uploadDate: new Date(photo.uploadDate).toISOString(), // string'e çevir
+        filename: photo.path.split('/').pop() || '',
+        people: photo.people || []
+      })) as Photo[];
   
-      const sortedPhotos = [...fetchedPhotos].sort((a, b) => 
+      // Filtreleri uygula
+      let filteredPhotos = [...fetchedPhotos];
+  
+      if (filters?.years && filters.years.length > 0) {
+        filteredPhotos = filteredPhotos.filter(photo => 
+          filters.years.includes(photo.year)
+        );
+      }
+  
+      if ((filters?.people ?? []).length > 0) {
+        filteredPhotos = filteredPhotos.filter(photo => 
+          photo.people?.some(person => (filters?.people ?? []).includes(person))
+        );
+      }
+  
+      if (filters?.searchQuery) {
+        const searchLower = filters.searchQuery.toLowerCase();
+        filteredPhotos = filteredPhotos.filter(photo =>
+          photo.description?.toLowerCase().includes(searchLower) ||
+          photo.userName?.toLowerCase().includes(searchLower) ||
+          photo.people?.some(person => 
+            person.toLowerCase().includes(searchLower)
+          )
+        );
+      }
+  
+      const sortedPhotos = filteredPhotos.sort((a, b) => 
         new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
       );
   
       setPhotos(sortedPhotos);
       if (typeof onGridRefreshed === 'function') {
-        onGridRefreshed(); 
+        onGridRefreshed();
       }
     } catch (error) {
       console.error('Error fetching photos:', error);
@@ -115,7 +155,7 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({
   };
   useEffect(() => {
     fetchPhotos();
-  }, [year, userId]);
+  }, [year, userId, filters?.years, filters?.people, filters?.searchQuery]);
 
   const handlePhotoClick = (photo: Photo, index: number) => {
     setSelectedPhoto(photo);

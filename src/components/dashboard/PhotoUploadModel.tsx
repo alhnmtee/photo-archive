@@ -24,7 +24,9 @@ import {
   Flex,
   Tag,
   Wrap,
-  WrapItem
+  WrapItem,
+  TagLabel,
+  TagCloseButton
 } from '@chakra-ui/react';
 import { CloseIcon, AddIcon } from '@chakra-ui/icons';
 import { useAuth } from '../../contexts/AuthContext';
@@ -166,6 +168,16 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
     setFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  const [people, setPeople] = useState<string[]>([]);
+  const [newPerson, setNewPerson] = useState('');
+
+  const handleAddPerson = () => {
+    if (newPerson.trim()) {
+      setPeople([...people, newPerson.trim()]);
+      setNewPerson('');
+    }
+  };
+
   const handleUpload = async () => {
     if (files.length === 0 || !currentUser || !year) {
       toast({
@@ -200,11 +212,16 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
             }, 200);
 
             await photoService.uploadPhoto(fileData.file, {
+              filename: fileData.file.name,
               year: parseInt(year),
               description: description || `Fotoğraf ${index + 1}`,
               userId: currentUser.uid,
               userName: currentUser.displayName || 'Anonim',
-              uploadDate: ''
+              uploadDate: '',
+              people: people,
+              size: fileData.file.size,
+              mimetype: fileData.file.type,
+              path: fileData.file.name
             });
 
             clearInterval(progressInterval);
@@ -405,6 +422,44 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Fotoğraflar hakkında açıklama ekleyin"
               />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Fotoğraftaki Kişiler</FormLabel>
+              <HStack>
+                <Input
+                  value={newPerson}
+                  onChange={(e) => setNewPerson(e.target.value)}
+                  placeholder="Kişi adı"
+                />
+                <IconButton
+                  aria-label="Kişi ekle"
+                  icon={<AddIcon />}
+                  onClick={handleAddPerson}
+                />
+              </HStack>
+              {people.length > 0 && (
+                <Wrap mt={2}>
+                  {people.map((person, index) => (
+                    <WrapItem key={index}>
+                      <Tag
+                        size="md"
+                        borderRadius="full"
+                        variant="solid"
+                        colorScheme="blue"
+                      >
+                        <TagLabel>{person}</TagLabel>
+                        <TagCloseButton
+                          onClick={() => {
+                            const newPeople = [...people];
+                            newPeople.splice(index, 1);
+                            setPeople(newPeople);
+                          }}
+                        />
+                      </Tag>
+                    </WrapItem>
+                  ))}
+                </Wrap>
+              )}
             </FormControl>
           </VStack>
         </ModalBody>
