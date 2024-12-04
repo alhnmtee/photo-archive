@@ -1,7 +1,7 @@
 // src/services/photoService.ts
 import axios from 'axios';
 
-const STORAGE_API = import.meta.env.VITE_STORAGE_API_URL;
+const STORAGE_API = import.meta.env.VITE_STORAGE_API_URL.replace('http://', 'https://');
 
 interface PhotoMetadata {
   uploadDate: string | number | Date;
