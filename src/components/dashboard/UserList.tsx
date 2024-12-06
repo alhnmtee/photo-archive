@@ -18,12 +18,12 @@ import { Link } from 'react-router-dom';
 import { userService } from '../../services/userService';
 import debounce from 'lodash/debounce';
 
-interface UserProfile {
-  id: string;
-  displayName: string;
-  photoURL?: string;
-  email: string;
-}
+//interface UserProfile {
+  //id: string;
+  //displayName: string;
+  //photoURL?: string;
+  //email: string;
+//}
 
 export const UserList = React.memo(() => {
   const [searchQuery, setSearchQuery] = React.useState('');
