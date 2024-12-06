@@ -54,7 +54,9 @@ export const photoService = {
       if (filters?.person) params.append('person', filters.person);
 
       console.log('Fetching photos with filters:', filters);
-      const response = await axios.get(`${STORAGE_API}/photos`, { params });
+      const response = await axios.get(`${STORAGE_API}/photos`, { params ,
+        withCredentials: true  
+      });
     
       const photos = response.data as PhotoMetadata[];
 
