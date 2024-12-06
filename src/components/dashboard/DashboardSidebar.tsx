@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   VStack,
   Heading,
@@ -14,9 +14,13 @@ import {
   AccordionButton,
   AccordionPanel,
   AccordionIcon,
+  Button,
 } from '@chakra-ui/react';
 import { SearchIcon } from '@chakra-ui/icons';
 import { photoService } from '../../services/photoService';
+import { FaPhotoVideo } from 'react-icons/fa';
+import { Link as RouterLink } from 'react-router-dom';
+import debounce from 'lodash/debounce';
 
 interface DashboardSidebarProps {
   onFilterChange?: (filters: {
@@ -26,10 +30,12 @@ interface DashboardSidebarProps {
   }) => void;
 }
 
-export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ onFilterChange }) => {
-  const years = Array.from(
-    { length: new Date().getFullYear() - 1999 },
-    (_, i) => new Date().getFullYear() - i
+export const DashboardSidebar = React.memo(({ onFilterChange }: DashboardSidebarProps) => {
+  const years = useMemo(() => 
+    Array.from(
+      { length: new Date().getFullYear() - 1999 },
+      (_, i) => new Date().getFullYear() - i
+    ), []
   );
 
   const [selectedYears, setSelectedYears] = useState<number[]>([]);
@@ -40,7 +46,9 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ onFilterChan
   const bgColor = useColorModeValue('white', 'gray.800');
   const textColor = useColorModeValue('gray.800', 'white');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const hoverBgColor = useColorModeValue('gray.100', 'gray.700');
 
+  // Kişileri yükle
   useEffect(() => {
     const loadPeople = async () => {
       try {
@@ -53,31 +61,53 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ onFilterChan
     loadPeople();
   }, []);
 
+  // Filtreleri memoize et
+  const currentFilters = useMemo(() => ({
+    years: selectedYears,
+    people: selectedPeople,
+    searchQuery
+  }), [selectedYears, selectedPeople, searchQuery]);
+
+  // Filter değişimini bildir
+  const handleFilterChange = useCallback(
+    debounce(() => {
+      onFilterChange?.(currentFilters);
+    }, 300),
+    [currentFilters, onFilterChange]
+  );
+
+  // Filter değişimlerini izle
   useEffect(() => {
-    if (onFilterChange) {
-      onFilterChange({
-        years: selectedYears,
-        people: selectedPeople,
-        searchQuery
-      });
-    }
-  }, [selectedYears, selectedPeople, searchQuery, onFilterChange]);
+    handleFilterChange();
+    return () => {
+      handleFilterChange.cancel();
+    };
+  }, [handleFilterChange]);
 
-  const handleYearChange = (year: number, isChecked: boolean) => {
-    if (isChecked) {
-      setSelectedYears([...selectedYears, year]);
-    } else {
-      setSelectedYears(selectedYears.filter(y => y !== year));
-    }
-  };
+  // Yıl değişimini optimize et
+  const handleYearChange = useCallback((year: number, isChecked: boolean) => {
+    setSelectedYears(prev => {
+      if (isChecked && !prev.includes(year)) {
+        return [...prev, year].sort((a, b) => b - a);
+      }
+      return prev.filter(y => y !== year);
+    });
+  }, []);
 
-  const handlePersonChange = (person: string, isChecked: boolean) => {
-    if (isChecked) {
-      setSelectedPeople([...selectedPeople, person]);
-    } else {
-      setSelectedPeople(selectedPeople.filter(p => p !== person));
-    }
-  };
+  // Kişi değişimini optimize et
+  const handlePersonChange = useCallback((person: string, isChecked: boolean) => {
+    setSelectedPeople(prev => {
+      if (isChecked && !prev.includes(person)) {
+        return [...prev, person].sort();
+      }
+      return prev.filter(p => p !== person);
+    });
+  }, []);
+
+  // Arama değişimini optimize et
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchQuery(value);
+  }, []);
 
   return (
     <VStack 
@@ -101,11 +131,27 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ onFilterChan
           <Input 
             placeholder="Fotoğraflarda ara..." 
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             bg={bgColor}
             borderColor={borderColor}
           />
         </InputGroup>
+      </Box>
+
+      {/* Albümler Butonu */}
+      <Box mb={6}>
+        <Button
+          as={RouterLink}
+          to="/albums"
+          leftIcon={<FaPhotoVideo />}
+          variant="ghost"
+          w="full"
+          justifyContent="start"
+          color={textColor}
+          _hover={{ bg: hoverBgColor }}
+        >
+          Albümler
+        </Button>
       </Box>
 
       <Accordion allowMultiple defaultIndex={[0, 1]}>
@@ -188,4 +234,8 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ onFilterChan
       )}
     </VStack>
   );
-};
+});
+
+DashboardSidebar.displayName = 'DashboardSidebar';
+
+export default DashboardSidebar;

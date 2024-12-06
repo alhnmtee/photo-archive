@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   SimpleGrid,
   Image,
@@ -39,6 +39,9 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { PhotoComments } from './PhotoComments';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import React from 'react';
+
 
 interface Photo {
   filename: string;
@@ -46,7 +49,7 @@ interface Photo {
   description: string;
   userId: string;
   userName: string;
-  uploadDate: string;
+  uploadDate: string; 
   path: string;
   size: number;
   mimetype: string;
@@ -64,17 +67,19 @@ interface PhotoGridProps {
   };
 }
 
-export const PhotoGrid: React.FC<PhotoGridProps> = ({ 
+
+
+export const PhotoGrid = React.memo(({ 
   year, 
   userId,
-  onGridRefreshed ,
+  onGridRefreshed,
   filters,
-}) => {
+}: PhotoGridProps) => {
   const { viewMode, gridSize } = useTheme();
-  const [photos, setPhotos] = useState<Photo[]>([]);
+  
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number>(0);
-  const [loading, setLoading] = useState(true);
+  
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { currentUser } = useAuth();
   const toast = useToast();
@@ -90,127 +95,113 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
-  const fetchPhotos = async () => {
-    try {
-      setLoading(true);
-      
-      const baseFilters: { year?: number; userId?: string } = {};
-      if (year) baseFilters.year = year;
-      if (userId) baseFilters.userId = userId;
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['photos', year, userId, filters],
+    queryFn: () => photoService.getPhotos({ year, userId }),
+    gcTime: 30 * 60 * 1000, // cacheTime yerine gcTime kullanıyoruz
+    staleTime: 5 * 60 * 1000,
+  });
+
+  useEffect(() => {
+    if (data) {
+      onGridRefreshed?.();
+    }
+  }, [data, onGridRefreshed]);
+  const filteredPhotos = useMemo(() => {
+    if (!Array.isArray(data)) return [];
   
-      const response = await photoService.getPhotos(baseFilters);
-      let fetchedPhotos = response.map(photo => ({
+    return data.filter((photo: any) => {
+      // Photo tipine dönüştür
+      const typedPhoto: Photo = {
         ...photo,
         uploadDate: new Date(photo.uploadDate).toISOString(), // string'e çevir
-        filename: photo.path.split('/').pop() || '',
         people: photo.people || []
-      })) as Photo[];
+      };
   
-      // Filtreleri uygula
-      let filteredPhotos = [...fetchedPhotos];
-  
-      if (filters?.years && filters.years.length > 0) {
-        filteredPhotos = filteredPhotos.filter(photo => 
-          filters.years.includes(photo.year)
-        );
+      if (filters?.years?.length && !filters.years.includes(typedPhoto.year)) {
+        return false;
       }
   
-      if ((filters?.people ?? []).length > 0) {
-        filteredPhotos = filteredPhotos.filter(photo => 
-          photo.people?.some(person => (filters?.people ?? []).includes(person))
-        );
+      if (filters?.people?.length && !typedPhoto.people?.some(person => 
+        filters.people.includes(person)
+      )) {
+        return false;
       }
   
       if (filters?.searchQuery) {
-        const searchLower = filters.searchQuery.toLowerCase();
-        filteredPhotos = filteredPhotos.filter(photo =>
-          photo.description?.toLowerCase().includes(searchLower) ||
-          photo.userName?.toLowerCase().includes(searchLower) ||
-          photo.people?.some(person => 
-            person.toLowerCase().includes(searchLower)
+        const query = filters.searchQuery.toLowerCase();
+        return (
+          typedPhoto.description?.toLowerCase().includes(query) ||
+          typedPhoto.userName?.toLowerCase().includes(query) ||
+          typedPhoto.people?.some(person => 
+            person.toLowerCase().includes(query)
           )
         );
       }
   
-      const sortedPhotos = filteredPhotos.sort((a, b) => 
-        new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
-      );
+      return true;
+    }) as Photo[];
+  }, [data, filters]);
   
-      setPhotos(sortedPhotos);
-      if (typeof onGridRefreshed === 'function') {
-        onGridRefreshed();
-      }
-    } catch (error) {
-      console.error('Error fetching photos:', error);
-      toast({
-        title: 'Hata',
-        description: 'Fotoğraflar yüklenirken bir hata oluştu',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-  useEffect(() => {
-    fetchPhotos();
-  }, [year, userId, filters?.years, filters?.people, filters?.searchQuery]);
 
-  const handlePhotoClick = (photo: Photo, index: number) => {
+  const handlePhotoClick = useCallback((photo: Photo, index: number) => {
     setSelectedPhoto(photo);
     setSelectedPhotoIndex(index);
     onOpen();
-  };
+  }, [onOpen]);
 
   const handlePrevPhoto = () => {
     if (selectedPhotoIndex > 0) {
       const newIndex = selectedPhotoIndex - 1;
       setSelectedPhotoIndex(newIndex);
-      setSelectedPhoto(photos[newIndex]);
+      setSelectedPhoto(filteredPhotos[newIndex]);
     }
   };
 
   const handleNextPhoto = () => {
-    if (selectedPhotoIndex < photos.length - 1) {
+    if (selectedPhotoIndex < filteredPhotos.length - 1) {
       const newIndex = selectedPhotoIndex + 1;
       setSelectedPhotoIndex(newIndex);
-      setSelectedPhoto(photos[newIndex]);
+      setSelectedPhoto(filteredPhotos[newIndex]);
     }
   };
 
-  const handleDeletePhoto = async () => {
-    if (!selectedPhoto || !currentUser) return;
+  const queryClient = useQueryClient(); // component başında ekleyin
 
-    try {
-      await photoService.deletePhoto(
-        selectedPhoto.year,
-        selectedPhoto.filename,
-        currentUser.uid
-      );
+const handleDeletePhoto = async () => {
+  if (!selectedPhoto || !currentUser) return;
 
-      toast({
-        title: 'Başarılı',
-        description: 'Fotoğraf başarıyla silindi',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
+  try {
+    await photoService.deletePhoto(
+      selectedPhoto.year,
+      selectedPhoto.filename,
+      currentUser.uid
+    );
 
-      const newPhotos = photos.filter(p => p.filename !== selectedPhoto.filename);
-      setPhotos(newPhotos);
-      onDeleteClose();
-      onClose();
-    } catch (error) {
-      toast({
-        title: 'Hata',
-        description: 'Fotoğraf silinirken bir hata oluştu',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-  };
+    // Cache'i güncelle
+    queryClient.invalidateQueries({ queryKey: ['photos'] });
+
+    toast({
+      title: 'Başarılı',
+      description: 'Fotoğraf başarıyla silindi',
+      status: 'success',
+      duration: 3000,
+      isClosable: true,
+    });
+
+    onDeleteClose();
+    onClose();
+  } catch (error) {
+    toast({
+      title: 'Hata',
+      description: 'Fotoğraf silinirken bir hata oluştu',
+      status: 'error',
+      duration: 3000,
+      isClosable: true,
+    });
+  }
+};
 
   const togglePhotoSelection = (photo: Photo) => {
     const newSelection = new Set(selectedPhotos);
@@ -233,7 +224,7 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({
     try {
       await Promise.all(
         Array.from(selectedPhotos).map(async (filename) => {
-          const photo = photos.find(p => p.filename === filename);
+          const photo = filteredPhotos.find(p => p.filename === filename);
           if (!photo || !currentUser) return;
   
           try {
@@ -246,7 +237,9 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({
         })
       );
   
-      // Başarı mesajı göster
+      // Cache'i güncelle
+      queryClient.invalidateQueries({ queryKey: ['photos'] });
+  
       toast({
         title: 'Silme İşlemi Tamamlandı',
         description: `${successCount} fotoğraf başarıyla silindi${failCount > 0 ? `, ${failCount} fotoğraf silinemedi` : ''}`,
@@ -255,11 +248,9 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({
         isClosable: true,
       });
   
-      // Seçim modunu kapat ve listeyi yenile
       if (successCount > 0) {
         setIsSelectionMode(false);
         setSelectedPhotos(new Set());
-        fetchPhotos();
       }
     } catch (error) {
       console.error('Bulk delete error:', error);
@@ -331,7 +322,7 @@ const renderGridView = () => (
 
     {/* Fotoğraf grid'i */}
     <SimpleGrid columns={getGridColumns()} spacing={4}>
-      {photos.map((photo, index) => (
+      {filteredPhotos.map((photo, index) => (
         <Box
           key={photo.filename}
           cursor="pointer"
@@ -404,7 +395,7 @@ const renderListView = () => (
     </HStack>
 
     <List spacing={3}>
-      {photos.map((photo, index) => (
+      {filteredPhotos.map((photo, index) => (
         <ListItem
           key={photo.filename}
           onClick={() => isSelectionMode ? togglePhotoSelection(photo) : handlePhotoClick(photo, index)}
@@ -447,7 +438,7 @@ const renderListView = () => (
 
 // Timeline görünümü için güncelleme
 const renderTimelineView = () => {
-  const groupedPhotos = photos.reduce((groups, photo) => {
+  const groupedPhotos = filteredPhotos.reduce<Record<string, Photo[]>>((groups, photo) => {
     const date = format(new Date(photo.uploadDate), 'MMMM yyyy', { locale: tr });
     if (!groups[date]) {
       groups[date] = [];
@@ -539,7 +530,7 @@ const renderTimelineView = () => {
 };
         <Box/>
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Center h="200px">
         <Spinner size="xl" />
@@ -547,7 +538,7 @@ const renderTimelineView = () => {
     );
   }
 
-  if (photos.length === 0) {
+  if (filteredPhotos.length === 0) {
     return (
       <Center h="200px">
         <Text color={textColor}>Henüz fotoğraf yüklenmemiş</Text>
@@ -559,8 +550,7 @@ const renderTimelineView = () => {
 
 
   const renderCalendarView = () => {
-    // Fotoğrafları aylara göre grupla
-    const groupedByMonth = photos.reduce((acc, photo) => {
+    const groupedByMonth = filteredPhotos.reduce<Record<string, Photo[]>>((acc, photo) => {
       const date = new Date(photo.uploadDate);
       const monthKey = format(date, 'MMMM yyyy', { locale: tr });
       
@@ -569,8 +559,8 @@ const renderTimelineView = () => {
       }
       acc[monthKey].push(photo);
       return acc;
-    }, {} as Record<string, Photo[]>);
-  
+    }, {});
+    
     return (
       <VStack spacing={8}>
         {Object.entries(groupedByMonth).map(([monthYear, monthPhotos]) => (
@@ -618,7 +608,7 @@ const renderTimelineView = () => {
   
   // Yıl/Ay bazında kategorize görünüm
   const renderYearMonthView = () => {
-    const groupedByYear = photos.reduce((acc, photo) => {
+          const groupedByYear = filteredPhotos.reduce<Record<number, Record<string, Photo[]>>>((acc: Record<number, Record<string, Photo[]>>, photo: Photo) => {
       if (!acc[photo.year]) {
         acc[photo.year] = {};
       }
@@ -673,7 +663,7 @@ const renderTimelineView = () => {
   
   // Kullanıcılara göre gruplandırma görünümü
   const renderUsersView = () => {
-    const groupedByUser = photos.reduce((acc, photo) => {
+    const groupedByUser = filteredPhotos.reduce<Record<string, { userName: string; photos: Photo[] }>>((acc, photo) => {
       if (!acc[photo.userId]) {
         acc[photo.userId] = {
           userName: photo.userName,
@@ -771,7 +761,7 @@ const renderTimelineView = () => {
                         aria-label="Sonraki fotoğraf"
                         icon={<ChevronRightIcon />}
                         onClick={handleNextPhoto}
-                        isDisabled={selectedPhotoIndex === photos.length - 1}
+                        isDisabled={selectedPhotoIndex === filteredPhotos.length - 1}
                         colorScheme="blue"
                         variant="solid"
                         opacity={0.8}
@@ -848,4 +838,4 @@ const renderTimelineView = () => {
       </AlertDialog>
     </>
   );
-};
+});  

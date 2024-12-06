@@ -1,5 +1,5 @@
-// src/components/dashboard/UserList.tsx
-import { useEffect, useState } from 'react';
+import React, { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   VStack,
   Box,
@@ -7,7 +7,6 @@ import {
   Text,
   HStack,
   useColorModeValue,
-  //Divider,
   Link as ChakraLink,
   Spinner,
   Input,
@@ -17,6 +16,7 @@ import {
 import { SearchIcon } from '@chakra-ui/icons';
 import { Link } from 'react-router-dom';
 import { userService } from '../../services/userService';
+import debounce from 'lodash/debounce';
 
 interface UserProfile {
   id: string;
@@ -25,38 +25,36 @@ interface UserProfile {
   email: string;
 }
 
-export const UserList = () => {
-  //const bgColor = useColorModeValue('white', 'gray.800');
+export const UserList = React.memo(() => {
+  const [searchQuery, setSearchQuery] = React.useState('');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const textColor = useColorModeValue('gray.600', 'gray.300');
   const hoverBg = useColorModeValue('gray.50', 'gray.700');
   const scrollThumbColor = useColorModeValue('gray.300', 'gray.600');
 
-  const [users, setUsers] = useState<UserProfile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  // React Query ile veri çekme
+  const { data: users = [], isLoading } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => userService.getAllUsers(),
+    staleTime: 5 * 60 * 1000
+  });
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setLoading(true);
-        const fetchedUsers = await userService.getAllUsers();
-        setUsers(fetchedUsers);
-      } catch (error) {
-        console.error('Error fetching users:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUsers();
-  }, []);
-
-  const filteredUsers = users.filter(user => 
-    user.displayName.toLowerCase().includes(searchQuery.toLowerCase())
+  // Arama işlemini debounce et
+  const debouncedSearch = React.useCallback(
+    debounce((value: string) => {
+      setSearchQuery(value);
+    }, 300),
+    []
   );
 
-  if (loading) {
+  // Filtrelenmiş kullanıcı listesini memorize et
+  const filteredUsers = useMemo(() => {
+    return users.filter(user =>
+      user.displayName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [users, searchQuery]);
+
+  if (isLoading) {
     return (
       <Box textAlign="center" py={4}>
         <Spinner />
@@ -76,8 +74,7 @@ export const UserList = () => {
         </InputLeftElement>
         <Input
           placeholder="Üye ara..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => debouncedSearch(e.target.value)}
           borderColor={borderColor}
         />
       </InputGroup>
@@ -135,4 +132,6 @@ export const UserList = () => {
       </VStack>
     </Box>
   );
-};
+});
+
+UserList.displayName = 'UserList';
