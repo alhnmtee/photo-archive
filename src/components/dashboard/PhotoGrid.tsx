@@ -96,7 +96,7 @@ export const PhotoGrid = React.memo(({
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['photos', year, userId, filters],
     queryFn: () => photoService.getPhotos({ year, userId }),
     gcTime: 30 * 60 * 1000, // cacheTime yerine gcTime kullanıyoruz
