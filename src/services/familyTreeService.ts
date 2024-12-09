@@ -1,6 +1,6 @@
 // src/services/familyTreeService.ts
 
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, query, where } from 'firebase/firestore';
+import { collection, doc, getDoc, setDoc, updateDoc, } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { FamilyMember, FamilyConnection } from '../types/familyTree';
 
