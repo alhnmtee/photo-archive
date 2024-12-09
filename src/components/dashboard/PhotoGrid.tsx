@@ -31,7 +31,7 @@ import {
   Divider,
   
 } from '@chakra-ui/react';
-import { ChevronLeftIcon, ChevronRightIcon, DeleteIcon } from '@chakra-ui/icons';
+import { AddIcon, ChevronLeftIcon, ChevronRightIcon, DeleteIcon, MinusIcon, RepeatIcon } from '@chakra-ui/icons';
 import { photoService } from '../../services/photoService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRef } from 'react';
@@ -41,6 +41,7 @@ import { tr } from 'date-fns/locale';
 import { PhotoComments } from './PhotoComments';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 
 
 interface Photo {
@@ -94,6 +95,8 @@ export const PhotoGrid = React.memo(({
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  
+
 
 
   const { data, isLoading } = useQuery({
@@ -202,6 +205,19 @@ const handleDeletePhoto = async () => {
     });
   }
 };
+//Klavye Kontrolleri
+    useEffect(() => {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (!isOpen) return;
+        
+        if (e.key === 'ArrowLeft') handlePrevPhoto();
+        if (e.key === 'ArrowRight') handleNextPhoto();
+        if (e.key === 'Escape') onClose();
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, handlePrevPhoto, handleNextPhoto, onClose]);
 
   const togglePhotoSelection = (photo: Photo) => {
     const newSelection = new Set(selectedPhotos);
@@ -268,23 +284,27 @@ const handleDeletePhoto = async () => {
 
   const getGridColumns = () => {
     switch (gridSize) {
-      case 'small':
-        return { base: 2, sm: 3, md: 4, lg: 6 };
-      case 'large':
+      case 'small':    
+        return { base: 2, sm: 3, md: 4, lg: 5 };
+      case 'medium':   
         return { base: 1, sm: 2, md: 3, lg: 4 };
-      default: // medium
-        return { base: 1, sm: 2, md: 3, lg: 5 };
+      case 'large':    
+        return { base: 1, sm: 2, md: 2, lg: 3 };
+      default:
+        return { base: 1, sm: 2, md: 3, lg: 4 };
     }
   };
-
+  
   const getImageHeight = () => {
     switch (gridSize) {
-      case 'small':
-        return '150px';
-      case 'large':
-        return '300px';
-      default: // medium
+      case 'small':  
         return '200px';
+      case 'medium':   
+        return '300px';
+      case 'large':  
+        return '400px';
+      default:
+        return '300px';
     }
   };
 
@@ -322,43 +342,51 @@ const renderGridView = () => (
 
     {/* Fotoğraf grid'i */}
     <SimpleGrid columns={getGridColumns()} spacing={4}>
-      {filteredPhotos.map((photo, index) => (
-        <Box
-          key={photo.filename}
-          cursor="pointer"
-          onClick={() => isSelectionMode ? togglePhotoSelection(photo) : handlePhotoClick(photo, index)}
-          borderRadius="lg"
-          overflow="hidden"
-          position="relative"
-          _hover={{ transform: 'scale(1.02)' }}
-          transition="all 0.2s"
-          bg={bgColor}
-          boxShadow="sm"
-          border={isSelectionMode && selectedPhotos.has(photo.filename) ? '3px solid' : '1px solid'}
-          borderColor={isSelectionMode && selectedPhotos.has(photo.filename) ? 'blue.500' : borderColor}
-        >
-          <Image
-            src={photoService.getPhotoUrl(photo.year, photo.filename)}
-            alt={photo.description || 'Fotoğraf'}
-            objectFit="cover"
-            w="100%"
-            h={getImageHeight()}
-          />
+        {filteredPhotos.map((photo, index) => (
           <Box
-            position="absolute"
-            bottom={0}
-            left={0}
-            right={0}
-            bg="blackAlpha.600"
-            p={2}
+            key={photo.filename}
+            position="relative"
+            cursor="pointer"
+            onClick={() => isSelectionMode ? togglePhotoSelection(photo) : handlePhotoClick(photo, index)}
+            borderRadius="lg"
+            overflow="hidden"
+            _hover={{ transform: 'scale(1.02)' }}
+            transition="all 0.2s"
+            bg={bgColor}
+            boxShadow="sm"
+            border={isSelectionMode && selectedPhotos.has(photo.filename) ? '3px solid' : '1px solid'}
+            borderColor={isSelectionMode && selectedPhotos.has(photo.filename) ? 'blue.500' : borderColor}
           >
-            <Text color="white" fontSize="sm">
-              {format(new Date(photo.uploadDate), 'dd MMMM yyyy', { locale: tr })}
-            </Text>
+            <Box
+              position="relative"
+              paddingTop="75%" // 4:3 aspect ratio
+            >
+              <Image
+                src={photoService.getPhotoUrl(photo.year, photo.filename)}
+                alt={photo.description || 'Fotoğraf'}
+                position="absolute"
+                top="0"
+                left="0"
+                width="100%"
+                height="100%"
+                objectFit="cover"
+              />
+            </Box>
+            <Box
+              position="absolute"
+              bottom={0}
+              left={0}
+              right={0}
+              bg="blackAlpha.600"
+              p={2}
+            >
+              <Text color="white" fontSize="sm">
+                {format(new Date(photo.uploadDate), 'dd MMMM yyyy', { locale: tr })}
+              </Text>
+            </Box>
           </Box>
-        </Box>
-      ),)}
-    </SimpleGrid>
+        ))}
+      </SimpleGrid>
   </Box>
 );
 
@@ -707,9 +735,139 @@ const renderTimelineView = () => {
       </SimpleGrid>
     );
   };
+  const renderPhotoModal = () => (
+    <Modal isOpen={isOpen} onClose={onClose} size="4xl">
+    <ModalOverlay />
+    <ModalContent bg={bgColor}>
+      <ModalHeader color={textColor}>
+        {selectedPhoto?.description || 'Fotoğraf Detay'}
+      </ModalHeader>
+      <ModalCloseButton color={textColor} />
+      <ModalBody pb={6}>
+        {selectedPhoto && (
+          <VStack spacing={4}>
+                 <Box position="relative" width="100%" height="600px">
+              <TransformWrapper
+                initialScale={1}
+                minScale={0.5}
+                maxScale={4}
+                centerOnInit={true}
+              >
+                {({ zoomIn, zoomOut, resetTransform }) => (
+                  <>
+                    <Box position="absolute" top={2} right={2} zIndex={10}>
+                      <HStack spacing={2}>
+                        <IconButton
+                          aria-label="Zoom in"
+                          icon={<AddIcon />}
+                          onClick={() => zoomIn()}
+                          colorScheme="blue"
+                          size="sm"
+                        />
+                        <IconButton
+                          aria-label="Zoom out"
+                          icon={<MinusIcon />}
+                          onClick={() => zoomOut()}
+                          colorScheme="blue"
+                          size="sm"
+                        />
+                        <IconButton
+                          aria-label="Reset zoom"
+                          icon={<RepeatIcon />}
+                          onClick={() => resetTransform()}
+                          colorScheme="blue"
+                          size="sm"
+                        />
+                      </HStack>
+                    </Box>
+                    <TransformComponent>
+                      <Image
+                        src={photoService.getPhotoUrl(selectedPhoto.year, selectedPhoto.filename)}
+                        alt={selectedPhoto.description || 'Fotoğraf'}
+                        maxH="600px"
+                        maxW="100%"
+                        objectFit="contain"
+                        draggable={false}
+                        margin="0 auto"
+                      />
+                    </TransformComponent>
+                  </>
+                )}
+              </TransformWrapper>
 
-
-
+              {/* Gezinme Butonları */}
+              <HStack 
+                position="absolute" 
+                width="100%" 
+                justify="space-between" 
+                top="50%" 
+                transform="translateY(-50%)"
+                px={4}
+                pointerEvents="none"
+              >
+                <IconButton
+                  aria-label="Önceki fotoğraf"
+                  icon={<ChevronLeftIcon boxSize={8} />}
+                  onClick={handlePrevPhoto}
+                  isDisabled={selectedPhotoIndex === 0}
+                  colorScheme="blue"
+                  variant="solid"
+                  opacity={0.8}
+                  pointerEvents="auto"
+                />
+                <IconButton
+                  aria-label="Sonraki fotoğraf"
+                  icon={<ChevronRightIcon boxSize={8} />}
+                  onClick={handleNextPhoto}
+                  isDisabled={selectedPhotoIndex === filteredPhotos.length - 1}
+                  colorScheme="blue"
+                  variant="solid"
+                  opacity={0.8}
+                  pointerEvents="auto"
+                />
+              </HStack>
+            </Box>
+  
+              <Box w="100%">
+                <HStack justify="space-between" mb={2}>
+                  <Box>
+                    <Text fontSize="sm" color={textColor}>
+                      Yükleyen: {selectedPhoto.userName}
+                    </Text>
+                    <Text fontSize="sm" color={textColor}>
+                      Tarih:{' '}
+                      {format(new Date(selectedPhoto.uploadDate), 'dd MMMM yyyy', { locale: tr })}
+                    </Text>
+                  </Box>
+                  {currentUser && currentUser.uid === selectedPhoto.userId && (
+                    <IconButton
+                      aria-label="Fotoğrafı sil"
+                      icon={<DeleteIcon />}
+                      colorScheme="red"
+                      variant="ghost"
+                      onClick={() => setIsDeleteOpen(true)}
+                    />
+                  )}
+                </HStack>
+                {selectedPhoto.description && (
+                  <Text mt={2} color={textColor}>{selectedPhoto.description}</Text>
+                )}
+              </Box>
+  
+              {/* Yorumlar bölümü */}
+              <Divider my={4} />
+              <Box w="100%">
+                <Text fontSize="lg" fontWeight="bold" mb={4} color={textColor}>
+                  Yorumlar
+                </Text>
+                <PhotoComments photoId={selectedPhoto.filename} />
+              </Box>
+            </VStack>
+          )}
+        </ModalBody>
+      </ModalContent>
+    </Modal>
+  );
 
   return (
     <>
@@ -719,95 +877,10 @@ const renderTimelineView = () => {
     {viewMode === 'calendar' && renderCalendarView()}
     {viewMode === 'yearMonth' && renderYearMonthView()}
     {viewMode === 'users' && renderUsersView()}
+    {renderPhotoModal()}
 
-      {/* Fotoğraf Detay Modalı */}
-      <Modal isOpen={isOpen} onClose={onClose} size="xl">
-        <ModalOverlay />
-        <ModalContent bg={bgColor}>
-          <ModalHeader color={textColor}>
-            {selectedPhoto?.description || 'Fotoğraf Detay'}
-          </ModalHeader>
-          <ModalCloseButton color={textColor} />
-            <ModalBody pb={6}>
-              {selectedPhoto && (
-                <VStack spacing={4}>
-                  <Box position="relative" width="100%">
-                    <Image
-                      src={photoService.getPhotoUrl(selectedPhoto.year, selectedPhoto.filename)}
-                      alt={selectedPhoto.description || 'Fotoğraf'}
-                      w="100%"
-                      borderRadius="md"
-                    />
-                    
-                    {/* Gezinme Butonları */}
-                    <HStack 
-                      position="absolute" 
-                      width="100%" 
-                      justify="space-between" 
-                      top="50%" 
-                      transform="translateY(-50%)"
-                      px={4}
-                    >
-                      <IconButton
-                        aria-label="Önceki fotoğraf"
-                        icon={<ChevronLeftIcon />}
-                        onClick={handlePrevPhoto}
-                        isDisabled={selectedPhotoIndex === 0}
-                        colorScheme="blue"
-                        variant="solid"
-                        opacity={0.8}
-                      />
-                      <IconButton
-                        aria-label="Sonraki fotoğraf"
-                        icon={<ChevronRightIcon />}
-                        onClick={handleNextPhoto}
-                        isDisabled={selectedPhotoIndex === filteredPhotos.length - 1}
-                        colorScheme="blue"
-                        variant="solid"
-                        opacity={0.8}
-                      />
-                    </HStack>
-                  </Box>
-
-                  <Box w="100%">
-                    <HStack justify="space-between" mb={2}>
-                      <Box>
-                        <Text fontSize="sm" color={textColor}>
-                          Yükleyen: {selectedPhoto.userName}
-                        </Text>
-                        <Text fontSize="sm" color={textColor}>
-                          Tarih:{' '}
-                          {format(new Date(selectedPhoto.uploadDate), 'dd MMMM yyyy', { locale: tr })}
-                        </Text>
-                      </Box>
-                      {currentUser && currentUser.uid === selectedPhoto.userId && (
-                        <IconButton
-                          aria-label="Fotoğrafı sil"
-                          icon={<DeleteIcon />}
-                          colorScheme="red"
-                          variant="ghost"
-                          onClick={() => setIsDeleteOpen(true)}
-                        />
-                      )}
-                    </HStack>
-                    {selectedPhoto.description && (
-                      <Text mt={2} color={textColor}>{selectedPhoto.description}</Text>
-                    )}
-                  </Box>
-
-                  {/* Yorumlar bölümü */}
-                  <Divider my={4} />
-                  <Box w="100%">
-                    <Text fontSize="lg" fontWeight="bold" mb={4} color={textColor}>
-                      Yorumlar
-                    </Text>
-                    <PhotoComments photoId={selectedPhoto.filename} />
-                  </Box>
-                </VStack>
-              )}
-          </ModalBody>
-        </ModalContent>
-      </Modal>
+     
+      
 
       {/* Silme Onay Dialog */}
       <AlertDialog

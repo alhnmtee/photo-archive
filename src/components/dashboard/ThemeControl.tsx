@@ -84,17 +84,17 @@ export const ThemeControls = () => {
         </ButtonGroup>
 
         {viewMode === 'grid' && (
-          <Select
-            size="sm"
-            value={gridSize}
-            onChange={(e) => setGridSize(e.target.value as 'small' | 'medium' | 'large')}
-            width="auto"
-          >
-            <option value="small">Küçük</option>
-            <option value="medium">Orta</option>
-            <option value="large">Büyük</option>
-          </Select>
-        )}
+            <Select
+              size="sm"
+              value={gridSize}
+              onChange={(e) => setGridSize(e.target.value as 'small' | 'medium' | 'large')}
+              width="auto"
+            >
+              <option value="small">Küçük</option>
+              <option value="medium">Orta</option>
+              <option value="large">Büyük</option>
+            </Select>
+          )}
 
         <Tooltip label={`${colorMode === 'light' ? 'Koyu' : 'Açık'} temaya geç`}>
           <IconButton

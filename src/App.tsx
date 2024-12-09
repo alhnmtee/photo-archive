@@ -7,7 +7,9 @@ import { Dashboard } from './pages/Dashboard';
 import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-
+import { Albums } from './pages/Albums';
+import { AlbumDetail } from './pages/AlbumDetail';
+import { FamilyTreePage } from './pages/FamilyTree';
 
 
 const queryClient = new QueryClient({
@@ -53,6 +55,30 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+                <Route
+                    path="/albums"
+                    element={
+                      <ProtectedRoute>
+                        <Albums />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/albums/:albumId"
+                    element={
+                      <ProtectedRoute>
+                        <AlbumDetail />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/family-tree"
+                    element={
+                      <ProtectedRoute>
+                        <FamilyTreePage />
+                      </ProtectedRoute>
+                    }
+                  />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
               </Routes>
             </Router>
