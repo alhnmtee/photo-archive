@@ -29,9 +29,17 @@ import {
   ListItem,
   Avatar,
   Divider,
+  FormControl,
+  FormLabel,
+  Input,
+  Tag,
+  TagLabel,
+  TagCloseButton,
+  Wrap,
+  WrapItem,
   
 } from '@chakra-ui/react';
-import { AddIcon, ChevronLeftIcon, ChevronRightIcon, DeleteIcon, MinusIcon, RepeatIcon } from '@chakra-ui/icons';
+import { AddIcon, ChevronLeftIcon, ChevronRightIcon, DeleteIcon, MinusIcon, RepeatIcon,EditIcon, CheckIcon } from '@chakra-ui/icons';
 import { photoService } from '../../services/photoService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRef } from 'react';
@@ -42,6 +50,9 @@ import { PhotoComments } from './PhotoComments';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
+//import { LazyLoadImage } from  'react-lazy-load-image-component';
+import 'react-lazy-load-image-component/src/effects/blur.css';
+
 
 
 interface Photo {
@@ -95,8 +106,38 @@ export const PhotoGrid = React.memo(({
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
+  const [editMode, setEditMode] = useState(false);
+  const [newPerson, setNewPerson] = useState('');
+  const [editData, setEditData] = useState({
+    description: '',
+    people: [] as string[]
+  });
   
 
+  const handleEditSave = async () => {
+    try {
+      if (!selectedPhoto) return;
+      
+      await photoService.updatePeople(selectedPhoto.year, selectedPhoto.filename, editData.people);
+      
+      queryClient.invalidateQueries({ queryKey: ['photos'] });
+      setEditMode(false);
+      toast({
+        title: 'Başarılı',
+        description: 'Fotoğraf detayları güncellendi',
+        status: 'success',
+        duration: 3000,
+      });
+    } catch (error) {
+      toast({
+        title: 'Hata',
+        description: 'Güncelleme sırasında bir hata oluştu', 
+        status: 'error',
+        duration: 3000,
+      });
+    }
+  };
 
 
   const { data, isLoading } = useQuery({
@@ -308,8 +349,8 @@ const handleDeletePhoto = async () => {
     }
   };
 
- // Grid görünümü için yeni render fonksiyonu
-const renderGridView = () => (
+ // Grid 
+ const renderGridView = () => (
   <Box>
     {/* Seçim modu kontrolleri */}
     <HStack spacing={4} mb={4}>
@@ -341,52 +382,63 @@ const renderGridView = () => (
     </HStack>
 
     {/* Fotoğraf grid'i */}
-    <SimpleGrid columns={getGridColumns()} spacing={4}>
-        {filteredPhotos.map((photo, index) => (
+    <SimpleGrid 
+      columns={getGridColumns()} 
+      spacing={6} 
+      width="100%"
+    >
+      {filteredPhotos.map((photo, index) => (
+        <Box
+          key={photo.filename}
+          position="relative"
+          width="100%"
+          height="300px"
+          cursor="pointer"
+          onClick={() => isSelectionMode ? togglePhotoSelection(photo) : handlePhotoClick(photo, index)}
+          role="group"
+          borderRadius="lg"
+          overflow="hidden"
+          transition="all 0.2s"
+          _hover={{ 
+            transform: 'scale(1.02)',
+            boxShadow: 'xl'
+          }}
+          bg={bgColor}
+          boxShadow="base"
+          border={isSelectionMode && selectedPhotos.has(photo.filename) ? '3px solid' : '1px solid'}
+          borderColor={isSelectionMode && selectedPhotos.has(photo.filename) ? 'blue.500' : borderColor}
+        >
+          <Image
+            src={photoService.getPhotoUrl(photo.year, photo.filename)}
+            alt={photo.description || 'Fotoğraf'}
+            width="100%"
+            height="100%"
+            objectFit="cover"
+            loading="lazy"
+          />
           <Box
-            key={photo.filename}
-            position="relative"
-            cursor="pointer"
-            onClick={() => isSelectionMode ? togglePhotoSelection(photo) : handlePhotoClick(photo, index)}
-            borderRadius="lg"
-            overflow="hidden"
-            _hover={{ transform: 'scale(1.02)' }}
-            transition="all 0.2s"
-            bg={bgColor}
-            boxShadow="sm"
-            border={isSelectionMode && selectedPhotos.has(photo.filename) ? '3px solid' : '1px solid'}
-            borderColor={isSelectionMode && selectedPhotos.has(photo.filename) ? 'blue.500' : borderColor}
+            position="absolute"
+            bottom={0}
+            left={0}
+            right={0}
+            bg="blackAlpha.700"
+            p={3}
+            transform="translateY(100%)"
+            transition="transform 0.2s"
+            _groupHover={{ transform: 'translateY(0)' }}
           >
-            <Box
-              position="relative"
-              paddingTop="75%" // 4:3 aspect ratio
-            >
-              <Image
-                src={photoService.getPhotoUrl(photo.year, photo.filename)}
-                alt={photo.description || 'Fotoğraf'}
-                position="absolute"
-                top="0"
-                left="0"
-                width="100%"
-                height="100%"
-                objectFit="cover"
-              />
-            </Box>
-            <Box
-              position="absolute"
-              bottom={0}
-              left={0}
-              right={0}
-              bg="blackAlpha.600"
-              p={2}
-            >
-              <Text color="white" fontSize="sm">
-                {format(new Date(photo.uploadDate), 'dd MMMM yyyy', { locale: tr })}
+            <Text color="white" fontSize="sm">
+              {format(new Date(photo.uploadDate), 'dd MMMM yyyy', { locale: tr })}
+            </Text>
+            {photo.description && (
+              <Text color="white" fontSize="sm" noOfLines={1} mt={1}>
+                {photo.description}
               </Text>
-            </Box>
+            )}
           </Box>
-        ))}
-      </SimpleGrid>
+        </Box>
+      ))}
+    </SimpleGrid>
   </Box>
 );
 
@@ -828,32 +880,125 @@ const renderTimelineView = () => {
               </HStack>
             </Box>
   
-              <Box w="100%">
-                <HStack justify="space-between" mb={2}>
-                  <Box>
-                    <Text fontSize="sm" color={textColor}>
-                      Yükleyen: {selectedPhoto.userName}
-                    </Text>
-                    <Text fontSize="sm" color={textColor}>
-                      Tarih:{' '}
-                      {format(new Date(selectedPhoto.uploadDate), 'dd MMMM yyyy', { locale: tr })}
-                    </Text>
-                  </Box>
-                  {currentUser && currentUser.uid === selectedPhoto.userId && (
-                    <IconButton
-                      aria-label="Fotoğrafı sil"
-                      icon={<DeleteIcon />}
-                      colorScheme="red"
-                      variant="ghost"
-                      onClick={() => setIsDeleteOpen(true)}
-                    />
+            <Box w="100%">
+                  <HStack justify="space-between" mb={2}>
+                    <Box>
+                      <Text fontSize="sm" color={textColor}>
+                        Yükleyen: {selectedPhoto.userName}
+                      </Text>
+                      <Text fontSize="sm" color={textColor}>
+                        Tarih: {format(new Date(selectedPhoto.uploadDate), 'dd MMMM yyyy', { locale: tr })}
+                      </Text>
+                    </Box>
+                    {currentUser && currentUser.uid === selectedPhoto.userId && (
+                      <HStack>
+                        <IconButton
+                          aria-label="Fotoğrafı düzenle"
+                          icon={editMode ? <CheckIcon /> : <EditIcon />}
+                          colorScheme="blue"
+                          variant="ghost"
+                          onClick={() => {
+                            if (editMode) {
+                              handleEditSave();
+                            } else {
+                              setEditData({
+                                description: selectedPhoto.description || '',
+                                people: selectedPhoto.people || []
+                              });
+                              setEditMode(true);
+                            }
+                          }}
+                        />
+                        <IconButton
+                          aria-label="Fotoğrafı sil"
+                          icon={<DeleteIcon />}
+                          colorScheme="red"
+                          variant="ghost"
+                          onClick={() => setIsDeleteOpen(true)}
+                        />
+                      </HStack>
+                    )}
+                  </HStack>
+
+                  {editMode ? (
+                    <VStack spacing={4} align="stretch">
+                      <FormControl>
+                        <FormLabel color={textColor}>Açıklama</FormLabel>
+                        <Input
+                          value={editData.description}
+                          onChange={(e) => setEditData(prev => ({
+                            ...prev,
+                            description: e.target.value
+                          }))}
+                          placeholder="Fotoğraf açıklaması"
+                        />
+                      </FormControl>
+                      <FormControl>
+                        <FormLabel color={textColor}>Kişiler</FormLabel>
+                        <HStack>
+                          <Input
+                            value={newPerson}
+                            onChange={(e) => setNewPerson(e.target.value)}
+                            placeholder="Kişi adı"
+                          />
+                          <IconButton
+                            aria-label="Kişi ekle"
+                            icon={<AddIcon />}
+                            onClick={() => {
+                              if (newPerson.trim()) {
+                                setEditData(prev => ({
+                                  ...prev,
+                                  people: [...prev.people, newPerson.trim()]
+                                }));
+                                setNewPerson('');
+                              }
+                            }}
+                          />
+                        </HStack>
+                        <Wrap mt={2}>
+                          {editData.people.map((person, index) => (
+                            <WrapItem key={index}>
+                              <Tag colorScheme="blue" borderRadius="full">
+                                <TagLabel>{person}</TagLabel>
+                                <TagCloseButton
+                                  onClick={() => {
+                                    setEditData(prev => ({
+                                      ...prev,
+                                      people: prev.people.filter((_, i) => i !== index)
+                                    }));
+                                  }}
+                                />
+                              </Tag>
+                            </WrapItem>
+                          ))}
+                        </Wrap>
+                      </FormControl>
+                    </VStack>
+                  ) : (
+                    <>
+                      {selectedPhoto.description && (
+                        <Text mt={2} color={textColor}>{selectedPhoto.description}</Text>
+                      )}
+                      {selectedPhoto.people && selectedPhoto.people.length > 0 && (
+                        <Box mt={4}>
+                          <Text fontWeight="bold" color={textColor} mb={2}>
+                            Etiketlenen Kişiler:
+                          </Text>
+                          <Wrap>
+                            {selectedPhoto.people.map((person, index) => (
+                              <WrapItem key={index}>
+                                <Tag colorScheme="blue" variant="subtle">
+                                  {person}
+                                </Tag>
+                              </WrapItem>
+                            ))}
+                          </Wrap>
+                        </Box>
+                      )}
+                    </>
                   )}
-                </HStack>
-                {selectedPhoto.description && (
-                  <Text mt={2} color={textColor}>{selectedPhoto.description}</Text>
-                )}
-              </Box>
-  
+                </Box>
+                
               {/* Yorumlar bölümü */}
               <Divider my={4} />
               <Box w="100%">

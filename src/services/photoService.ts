@@ -78,6 +78,7 @@ export const photoService = {
       throw error;
     }
   },
+ 
 
   getPhotoUrl(year: number, filename: string) {
     return `${STORAGE_API}/photos/${year}/${filename}`;
@@ -116,4 +117,14 @@ export const photoService = {
       throw error;
     }
   }
+};
+export const getPhotoUrl = (year: number, filename: string) => {
+  const supportsWebP = document.createElement('canvas')
+    .toDataURL('image/webp')
+    .indexOf('data:image/webp') === 0;
+
+  if (supportsWebP) {
+    return `${STORAGE_API}/photos/${year}/${filename}?format=webp`;
+  }
+  return `${STORAGE_API}/photos/${year}/${filename}`;
 };

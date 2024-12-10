@@ -31,6 +31,7 @@ import {
 import { CloseIcon, AddIcon } from '@chakra-ui/icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { photoService } from '../../services/photoService';
+import imageOptimizer from '../../utils/imageOptimizer';
 
 interface PhotoUploadModalProps {
   isOpen: boolean;
@@ -44,11 +45,15 @@ interface UploadFile {
   progress: number;
   status: 'waiting' | 'uploading' | 'success' | 'error';
   error?: string;
+  metadata?: {
+    originalSize: string;
+    optimizedSize: string;
+    compressionRatio: string;
+    dimensions: string;
+  };
 }
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-const MAX_FILES = 20;
 
 export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({ 
   isOpen, 
@@ -69,15 +74,14 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
   const borderColor = useColorModeValue('gray.200', 'gray.600');
   const dragBorderColor = useColorModeValue('blue.500', 'blue.300');
 
-  const validateFile = (file: File): string | null => {
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return 'Desteklenmeyen dosya formatı';
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      return 'Dosya boyutu çok büyük (max 10MB)';
-    }
-    return null;
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
+
 
   const createPreview = async (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -89,54 +93,47 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
   };
 
   const processFiles = async (newFiles: File[]) => {
-    if (files.length + newFiles.length > MAX_FILES) {
-      toast({
-        title: 'Uyarı',
-        description: `En fazla ${MAX_FILES} fotoğraf yükleyebilirsiniz`,
-        status: 'warning',
-        duration: 3000,
-        isClosable: true,
-      });
-      newFiles = newFiles.slice(0, MAX_FILES - files.length);
-    }
-
-    const processedFiles: UploadFile[] = [];
-    
-    for (const file of newFiles) {
-      const error = validateFile(file);
-      if (error) {
+    try {
+      const { results, errors } = await imageOptimizer.processFiles(newFiles);
+      
+      // Hataları bildir
+      errors.forEach(({ file, error }) => {
         toast({
-          title: 'Hata',
-          description: `${file.name}: ${error}`,
+          title: `Hata: ${file.name}`,
+          description: error,
           status: 'error',
           duration: 3000,
-          isClosable: true,
         });
-        continue;
-      }
-
-      try {
-        const preview = await createPreview(file);
-        processedFiles.push({
-          file,
+      });
+  
+      // Başarılı sonuçları işle
+      for (const result of results) {
+        const preview = await createPreview((result as any).file);
+        setFiles(prev => [...prev, {
+          file: (result as any).file,
           preview,
           progress: 0,
-          status: 'waiting'
-        });
-      } catch (error) {
-        console.error('Preview creation error:', error);
-        toast({
-          title: 'Hata',
-          description: `${file.name} önizlemesi oluşturulamadı`,
-          status: 'error',
-          duration: 3000,
-          isClosable: true,
-        });
+          status: 'waiting',
+          metadata: {
+            originalSize: formatFileSize((result as any).originalSize),
+            optimizedSize: formatFileSize((result as any).optimizedSize),
+            compressionRatio: (result as any).compressionRatio,
+            dimensions: `${(result as any).width}x${(result as any).height}`
+          }
+        }]);
       }
+    } catch (error) {
+      console.error('File processing error:', error);
+      toast({
+        title: 'Hata',
+        description: 'Dosyalar işlenirken bir hata oluştu',
+        status: 'error',
+        duration: 3000,
+      });
     }
-
-    setFiles(prev => [...prev, ...processedFiles]);
   };
+
+   
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files || []);
