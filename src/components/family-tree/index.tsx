@@ -1,5 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Box, Avatar, Text, VStack, useColorModeValue, Spinner } from '@chakra-ui/react';
+import {
+  Box,
+  Avatar,
+  Text,
+  VStack,
+  useColorModeValue
+} from '@chakra-ui/react';
 import { FamilyMember, FamilyConnection, FamilyTreeNode } from '../../types/familyTree';
 
 interface FamilyTreeProps {
@@ -13,30 +19,39 @@ const LEVEL_HEIGHT = 120;
 const NODE_WIDTH = 200;
 const NODE_HEIGHT = 100;
 
-const FamilyTreeComponent: React.FC<FamilyTreeProps> = ({
+const FamilyTree: React.FC<FamilyTreeProps> = ({
   members,
   connections,
   onMemberClick,
   rootMemberId
 }) => {
   const [treeNodes, setTreeNodes] = useState<FamilyTreeNode[]>([]);
-  const [loading, setLoading] = useState(true);
-  
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
 
   const calculateLayout = useCallback(() => {
+    console.log("Starting layout calculation with members:", members);
     const nodes: FamilyTreeNode[] = [];
+    const processedIds = new Set<string>();
     const memberMap = new Map(members.map(m => [m.id, m]));
-    
+
     const processNode = (memberId: string, level: number, position: number) => {
+      // Prevent infinite recursion
+      if (processedIds.has(memberId)) {
+        return;
+      }
+
       const member = memberMap.get(memberId);
-      if (!member) return null;
+      if (!member) {
+        return;
+      }
+
+      processedIds.add(memberId);
 
       const node: FamilyTreeNode = {
         ...member,
         level,
-        x: position * NODE_WIDTH,
+        x: position * NODE_WIDTH * 1.5,
         y: level * LEVEL_HEIGHT,
         layout: {
           width: NODE_WIDTH,
@@ -46,40 +61,45 @@ const FamilyTreeComponent: React.FC<FamilyTreeProps> = ({
 
       nodes.push(node);
 
-      // Process parents
+      // Process parents with offset
       if (member.parents) {
-        if (member.parents.fatherId) {
-          processNode(member.parents.fatherId, level - 1, position - 0.5);
+        if (member.parents.fatherId && !processedIds.has(member.parents.fatherId)) {
+          processNode(member.parents.fatherId, level - 1, position - 1);
         }
-        if (member.parents.motherId) {
-          processNode(member.parents.motherId, level - 1, position + 0.5);
+        if (member.parents.motherId && !processedIds.has(member.parents.motherId)) {
+          processNode(member.parents.motherId, level - 1, position + 1);
         }
       }
 
-      // Process children
-      if (member.children) {
-        member.children.forEach((childId, index) => {
-          processNode(childId, level + 1, position + index - (member.children!.length - 1) / 2);
-        });
-      }
+      // Find and process children
+      const childrenIds = members
+        .filter(m => m.parents?.fatherId === memberId || m.parents?.motherId === memberId)
+        .map(m => m.id);
+
+      childrenIds.forEach((childId, index) => {
+        if (!processedIds.has(childId)) {
+          const offset = index - (childrenIds.length - 1) / 2;
+          processNode(childId, level + 1, position + offset);
+        }
+      });
     };
 
-    processNode(rootMemberId, 0, 0);
+    // Start with root member
+    const rootMember = members.find(m => m.id === rootMemberId) || members[0];
+    if (rootMember) {
+      processNode(rootMember.id, 0, 0);
+    }
+
+    console.log("Calculated nodes:", nodes);
     return nodes;
   }, [members, rootMemberId]);
 
   useEffect(() => {
-    setLoading(true);
     const nodes = calculateLayout();
     setTreeNodes(nodes);
-    setLoading(false);
   }, [calculateLayout]);
 
-  if (loading) {
-    return <Spinner />;
-  }
-
-  const renderConnections = () => {
+  const renderConnections = useCallback(() => {
     return connections.map(connection => {
       const fromNode = treeNodes.find(n => n.id === connection.from);
       const toNode = treeNodes.find(n => n.id === connection.to);
@@ -91,21 +111,33 @@ const FamilyTreeComponent: React.FC<FamilyTreeProps> = ({
       const endX = toNode.x + NODE_WIDTH / 2;
       const endY = toNode.y;
 
+      const controlY = (startY + endY) / 2;
+
       return (
         <path
           key={connection.id}
-          d={`M ${startX} ${startY} C ${startX} ${(startY + endY) / 2}, ${endX} ${(startY + endY) / 2}, ${endX} ${endY}`}
+          d={`M ${startX} ${startY} C ${startX} ${controlY}, ${endX} ${controlY}, ${endX} ${endY}`}
           stroke={connection.type === 'spouse' ? '#E53E3E' : '#3182CE'}
           strokeWidth="2"
           fill="none"
         />
       );
     });
-  };
+  }, [connections, treeNodes]);
 
   return (
-    <Box overflowX="auto" overflowY="auto" p={8}>
-      <svg width="100%" height="100%" style={{ minWidth: '1000px', minHeight: '600px' }}>
+    <Box position="relative" width="100%" height="100%" overflow="auto">
+      <svg
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          minWidth: '1000px',
+          minHeight: '600px'
+        }}
+      >
         <g>{renderConnections()}</g>
       </svg>
       
@@ -125,6 +157,7 @@ const FamilyTreeComponent: React.FC<FamilyTreeProps> = ({
           onClick={() => onMemberClick?.(node)}
           _hover={{ transform: 'scale(1.02)' }}
           transition="all 0.2s"
+          zIndex={1}
         >
           <VStack spacing={2}>
             <Avatar
@@ -149,4 +182,4 @@ const FamilyTreeComponent: React.FC<FamilyTreeProps> = ({
   );
 };
 
-export default FamilyTreeComponent;
+export default FamilyTree;

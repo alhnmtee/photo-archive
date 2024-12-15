@@ -12,23 +12,27 @@ import {
   } from 'firebase/firestore';
   import { db } from '../config/firebase';
   
-  export interface Album {
-    id: string;
-    title: string;
-    description?: string;
-    coverPhotoUrl?: string;
-    createdAt: string;
-    updatedAt: string;
-    createdBy: string;
-    creatorName: string;
-    isPublic: boolean;
-    photos: Array<{
-      filename: string;
-      year: number;
-      uploadDate: string;
-      description?: string;
-    }>;
-  }
+// src/services/albumService.ts
+
+export interface AlbumPhoto {
+  filename: string;
+  year: number;
+  uploadDate: string | Date;
+  description?: string;
+}
+
+export interface Album {
+  id: string;
+  title: string;
+  description?: string;
+  coverPhotoUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  creatorName: string;
+  isPublic: boolean;
+  photos: AlbumPhoto[];
+}
   
   export const albumService = {
     async createAlbum(albumData: Omit<Album, 'id'>): Promise<Album> {

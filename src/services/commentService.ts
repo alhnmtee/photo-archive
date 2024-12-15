@@ -11,6 +11,16 @@ export interface Comment {
   userPhotoURL?: string;
   content: string;
   createdAt: string;
+  replies?: Reply[];
+}
+
+export interface Reply {
+  id: string;
+  userId: string;
+  userName: string;
+  userPhotoURL?: string;
+  content: string;
+  createdAt: string;
 }
 
 export const commentService = {
@@ -34,6 +44,50 @@ export const commentService = {
     }
   },
 
+  async addReply(
+    commentId: string,
+    photoId: string,
+    content: string,
+    userData: {
+      userId: string;
+      userName: string;
+      userPhotoURL?: string;
+    }
+  ) {
+    try {
+      const response = await axios.post(
+        `${STORAGE_API}/comments/${commentId}/replies`,
+        {
+          photoId,
+          content,
+          userId: userData.userId,
+          userName: userData.userName,
+          userPhotoURL: userData.userPhotoURL
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Add reply error:', error);
+      throw error;
+    }
+  },
+
+  async deleteReply(commentId: string, replyId: string, userId: string, photoId: string) {
+    try {
+      const response = await axios.delete(
+        `${STORAGE_API}/comments/${commentId}/replies/${replyId}`,
+        {
+          params: { userId, photoId }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Delete reply error:', error);
+      throw error;
+    }
+  },
+
+
   async getComments(photoId: string) {
     try {
       const response = await axios.get(`${STORAGE_API}/comments/${photoId}`);
@@ -54,5 +108,6 @@ export const commentService = {
       console.error('Delete comment error:', error);
       throw error;
     }
-  }
+  },
+
 };

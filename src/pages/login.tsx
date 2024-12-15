@@ -35,6 +35,13 @@ export const Login = () => {
   });
 
   const handleError = (error: any) => {
+    console.error('Login Error Details:', {
+      error,
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    });
+    
     toast({
       title: 'Giriş başarısız',
       description: error.message,
@@ -48,8 +55,16 @@ export const Login = () => {
   const onEmailSubmit = async (data: LoginFormData) => {
     try {
       setLoading(true);
-      await signInWithEmail(data.email, data.password);
-      navigate('/dashboard');
+      console.log('Starting login process...');
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const user = await signInWithEmail(data.email, data.password);
+      console.log('Login successful, user:', user);
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 100);
+      
     } catch (error) {
       handleError(error);
     }

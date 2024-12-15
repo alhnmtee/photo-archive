@@ -5,16 +5,11 @@ import {
   Box,
   Text,
   useDisclosure,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalCloseButton,
+ 
   Spinner,
   Center,
   VStack,
-  IconButton,
+  
   HStack,
   Button,
   useToast,
@@ -28,30 +23,21 @@ import {
   List,
   ListItem,
   Avatar,
-  Divider,
-  FormControl,
-  FormLabel,
-  Input,
-  Tag,
-  TagLabel,
-  TagCloseButton,
-  Wrap,
-  WrapItem,
+
   
 } from '@chakra-ui/react';
-import { AddIcon, ChevronLeftIcon, ChevronRightIcon, DeleteIcon, MinusIcon, RepeatIcon,EditIcon, CheckIcon } from '@chakra-ui/icons';
 import { photoService } from '../../services/photoService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRef } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { PhotoComments } from './PhotoComments';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
-import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 //import { LazyLoadImage } from  'react-lazy-load-image-component';
 import 'react-lazy-load-image-component/src/effects/blur.css';
+import { PhotoViewer } from '../PhotoViewer';
+
 
 
 
@@ -88,10 +74,8 @@ export const PhotoGrid = React.memo(({
   filters,
 }: PhotoGridProps) => {
   const { viewMode, gridSize } = useTheme();
-  
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number>(0);
-  
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { currentUser } = useAuth();
   const toast = useToast();
@@ -119,7 +103,11 @@ export const PhotoGrid = React.memo(({
     try {
       if (!selectedPhoto) return;
       
-      await photoService.updatePeople(selectedPhoto.year, selectedPhoto.filename, editData.people);
+      // Açıklama ve etiketleri paralel olarak güncelle
+      await Promise.all([
+        photoService.updateDescription(selectedPhoto.year, selectedPhoto.filename, editData.description),
+        photoService.updatePeople(selectedPhoto.year, selectedPhoto.filename, editData.people)
+      ]);
       
       queryClient.invalidateQueries({ queryKey: ['photos'] });
       setEditMode(false);
@@ -427,14 +415,12 @@ const handleDeletePhoto = async () => {
             transition="transform 0.2s"
             _groupHover={{ transform: 'translateY(0)' }}
           >
-            <Text color="white" fontSize="sm">
-              {format(new Date(photo.uploadDate), 'dd MMMM yyyy', { locale: tr })}
+            <Text color="white" fontSize="sm" fontWeight="bold">
+              Çekildiği Yıl: {photo.year}
             </Text>
-            {photo.description && (
-              <Text color="white" fontSize="sm" noOfLines={1} mt={1}>
-                {photo.description}
-              </Text>
-            )}
+            <Text color="white" fontSize="sm" mt={1}>
+              {photo.description || 'İsimsiz Fotoğraf'}
+            </Text>
           </Box>
         </Box>
       ))}
@@ -788,230 +774,38 @@ const renderTimelineView = () => {
     );
   };
   const renderPhotoModal = () => (
-    <Modal isOpen={isOpen} onClose={onClose} size="4xl">
-    <ModalOverlay />
-    <ModalContent bg={bgColor}>
-      <ModalHeader color={textColor}>
-        {selectedPhoto?.description || 'Fotoğraf Detay'}
-      </ModalHeader>
-      <ModalCloseButton color={textColor} />
-      <ModalBody pb={6}>
-        {selectedPhoto && (
-          <VStack spacing={4}>
-                 <Box position="relative" width="100%" height="600px">
-              <TransformWrapper
-                initialScale={1}
-                minScale={0.5}
-                maxScale={4}
-                centerOnInit={true}
-              >
-                {({ zoomIn, zoomOut, resetTransform }) => (
-                  <>
-                    <Box position="absolute" top={2} right={2} zIndex={10}>
-                      <HStack spacing={2}>
-                        <IconButton
-                          aria-label="Zoom in"
-                          icon={<AddIcon />}
-                          onClick={() => zoomIn()}
-                          colorScheme="blue"
-                          size="sm"
-                        />
-                        <IconButton
-                          aria-label="Zoom out"
-                          icon={<MinusIcon />}
-                          onClick={() => zoomOut()}
-                          colorScheme="blue"
-                          size="sm"
-                        />
-                        <IconButton
-                          aria-label="Reset zoom"
-                          icon={<RepeatIcon />}
-                          onClick={() => resetTransform()}
-                          colorScheme="blue"
-                          size="sm"
-                        />
-                      </HStack>
-                    </Box>
-                    <TransformComponent>
-                      <Image
-                        src={photoService.getPhotoUrl(selectedPhoto.year, selectedPhoto.filename)}
-                        alt={selectedPhoto.description || 'Fotoğraf'}
-                        maxH="600px"
-                        maxW="100%"
-                        objectFit="contain"
-                        draggable={false}
-                        margin="0 auto"
-                      />
-                    </TransformComponent>
-                  </>
-                )}
-              </TransformWrapper>
-
-              {/* Gezinme Butonları */}
-              <HStack 
-                position="absolute" 
-                width="100%" 
-                justify="space-between" 
-                top="50%" 
-                transform="translateY(-50%)"
-                px={4}
-                pointerEvents="none"
-              >
-                <IconButton
-                  aria-label="Önceki fotoğraf"
-                  icon={<ChevronLeftIcon boxSize={8} />}
-                  onClick={handlePrevPhoto}
-                  isDisabled={selectedPhotoIndex === 0}
-                  colorScheme="blue"
-                  variant="solid"
-                  opacity={0.8}
-                  pointerEvents="auto"
-                />
-                <IconButton
-                  aria-label="Sonraki fotoğraf"
-                  icon={<ChevronRightIcon boxSize={8} />}
-                  onClick={handleNextPhoto}
-                  isDisabled={selectedPhotoIndex === filteredPhotos.length - 1}
-                  colorScheme="blue"
-                  variant="solid"
-                  opacity={0.8}
-                  pointerEvents="auto"
-                />
-              </HStack>
-            </Box>
-  
-            <Box w="100%">
-                  <HStack justify="space-between" mb={2}>
-                    <Box>
-                      <Text fontSize="sm" color={textColor}>
-                        Yükleyen: {selectedPhoto.userName}
-                      </Text>
-                      <Text fontSize="sm" color={textColor}>
-                        Tarih: {format(new Date(selectedPhoto.uploadDate), 'dd MMMM yyyy', { locale: tr })}
-                      </Text>
-                    </Box>
-                    {currentUser && currentUser.uid === selectedPhoto.userId && (
-                      <HStack>
-                        <IconButton
-                          aria-label="Fotoğrafı düzenle"
-                          icon={editMode ? <CheckIcon /> : <EditIcon />}
-                          colorScheme="blue"
-                          variant="ghost"
-                          onClick={() => {
-                            if (editMode) {
-                              handleEditSave();
-                            } else {
-                              setEditData({
-                                description: selectedPhoto.description || '',
-                                people: selectedPhoto.people || []
-                              });
-                              setEditMode(true);
-                            }
-                          }}
-                        />
-                        <IconButton
-                          aria-label="Fotoğrafı sil"
-                          icon={<DeleteIcon />}
-                          colorScheme="red"
-                          variant="ghost"
-                          onClick={() => setIsDeleteOpen(true)}
-                        />
-                      </HStack>
-                    )}
-                  </HStack>
-
-                  {editMode ? (
-                    <VStack spacing={4} align="stretch">
-                      <FormControl>
-                        <FormLabel color={textColor}>Açıklama</FormLabel>
-                        <Input
-                          value={editData.description}
-                          onChange={(e) => setEditData(prev => ({
-                            ...prev,
-                            description: e.target.value
-                          }))}
-                          placeholder="Fotoğraf açıklaması"
-                        />
-                      </FormControl>
-                      <FormControl>
-                        <FormLabel color={textColor}>Kişiler</FormLabel>
-                        <HStack>
-                          <Input
-                            value={newPerson}
-                            onChange={(e) => setNewPerson(e.target.value)}
-                            placeholder="Kişi adı"
-                          />
-                          <IconButton
-                            aria-label="Kişi ekle"
-                            icon={<AddIcon />}
-                            onClick={() => {
-                              if (newPerson.trim()) {
-                                setEditData(prev => ({
-                                  ...prev,
-                                  people: [...prev.people, newPerson.trim()]
-                                }));
-                                setNewPerson('');
-                              }
-                            }}
-                          />
-                        </HStack>
-                        <Wrap mt={2}>
-                          {editData.people.map((person, index) => (
-                            <WrapItem key={index}>
-                              <Tag colorScheme="blue" borderRadius="full">
-                                <TagLabel>{person}</TagLabel>
-                                <TagCloseButton
-                                  onClick={() => {
-                                    setEditData(prev => ({
-                                      ...prev,
-                                      people: prev.people.filter((_, i) => i !== index)
-                                    }));
-                                  }}
-                                />
-                              </Tag>
-                            </WrapItem>
-                          ))}
-                        </Wrap>
-                      </FormControl>
-                    </VStack>
-                  ) : (
-                    <>
-                      {selectedPhoto.description && (
-                        <Text mt={2} color={textColor}>{selectedPhoto.description}</Text>
-                      )}
-                      {selectedPhoto.people && selectedPhoto.people.length > 0 && (
-                        <Box mt={4}>
-                          <Text fontWeight="bold" color={textColor} mb={2}>
-                            Etiketlenen Kişiler:
-                          </Text>
-                          <Wrap>
-                            {selectedPhoto.people.map((person, index) => (
-                              <WrapItem key={index}>
-                                <Tag colorScheme="blue" variant="subtle">
-                                  {person}
-                                </Tag>
-                              </WrapItem>
-                            ))}
-                          </Wrap>
-                        </Box>
-                      )}
-                    </>
-                  )}
-                </Box>
-                
-              {/* Yorumlar bölümü */}
-              <Divider my={4} />
-              <Box w="100%">
-                <Text fontSize="lg" fontWeight="bold" mb={4} color={textColor}>
-                  Yorumlar
-                </Text>
-                <PhotoComments photoId={selectedPhoto.filename} />
-              </Box>
-            </VStack>
-          )}
-        </ModalBody>
-      </ModalContent>
-    </Modal>
+    <PhotoViewer
+      isOpen={isOpen}
+      onClose={() => {
+        onClose();
+        setEditMode(false);
+      }}
+      currentPhoto={selectedPhoto}
+      photos={filteredPhotos}
+      currentIndex={selectedPhotoIndex}
+      onNavigate={(newIndex) => {
+        setSelectedPhotoIndex(newIndex);
+        setSelectedPhoto(filteredPhotos[newIndex]);
+      }}
+      canEdit={currentUser?.uid === selectedPhoto?.userId}
+      onEdit={() => {
+        if (selectedPhoto) {
+          setEditData({
+            description: selectedPhoto.description || '',
+            people: selectedPhoto.people || []
+          });
+          setEditMode(true);
+        }
+      }}
+      onDelete={() => setIsDeleteOpen(true)}
+      onEditSave={handleEditSave}
+      editMode={editMode}
+      editData={editData}
+      setEditData={setEditData}
+      setEditMode={setEditMode}
+      newPerson={newPerson}
+      setNewPerson={setNewPerson}
+    />
   );
 
   return (

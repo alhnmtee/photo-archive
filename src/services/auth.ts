@@ -11,10 +11,17 @@ import { auth } from '../config/firebase';
 
 export const emailSignIn = async (email: string, password: string) => {
   try {
+    console.log('Attempting email sign in...', { email });
     const result = await signInWithEmailAndPassword(auth, email, password);
+    console.log('Sign in successful:', result);
     return result.user;
   } catch (error: any) {
-    console.error('Email sign-in error:', error);
+    console.error('Email sign-in detailed error:', {
+      error,
+      code: error.code,
+      message: error.message,
+      stack: error.stack
+    });
     const errorMessage = handleAuthError(error.code);
     throw new Error(errorMessage);
   }

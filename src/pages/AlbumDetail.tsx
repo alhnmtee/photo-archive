@@ -53,6 +53,8 @@ export const AlbumDetail = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
 
+  
+
   // Renk değişkenleri
   const bgColor = useColorModeValue('white', 'gray.800');
   const textColor = useColorModeValue('gray.800', 'white');
@@ -87,6 +89,7 @@ export const AlbumDetail = () => {
       onClose();
     }
   });
+  
 
   const deleteAlbumMutation = useMutation({
     mutationFn: (albumId: string) => albumService.deleteAlbum(albumId),
@@ -135,7 +138,7 @@ export const AlbumDetail = () => {
       .map(photo => ({
         filename: photo.filename,
         year: photo.year,
-        uploadDate: typeof photo.uploadDate === 'string' ? photo.uploadDate : photo.uploadDate.toString(),
+        uploadDate: typeof photo.uploadDate === 'string' ? photo.uploadDate : (photo.uploadDate as Date).toString(),
         description: photo.description
       }));
 
