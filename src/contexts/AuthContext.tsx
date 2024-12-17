@@ -47,8 +47,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     currentUser,
     loading,
     signInWithEmail: async (email: string, password: string) => {
-      await new Promise(resolve => setTimeout(resolve, 500));
       const user = await emailSignIn(email, password);
+      setCurrentUser(user); 
       return user;
     },
     signInWithGoogle: async () => {

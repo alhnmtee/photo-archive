@@ -50,6 +50,8 @@ interface UploadFile {
     optimizedSize: string;
     compressionRatio: string;
     dimensions: string;
+    uploadDate?: string;
+
   };
 }
 
@@ -214,11 +216,7 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
               description: description || `Fotoğraf ${index + 1}`,
               userId: currentUser.uid,
               userName: currentUser.displayName || 'Anonim',
-              uploadDate: '',
               people: people,
-              size: fileData.file.size,
-              mimetype: fileData.file.type,
-              path: fileData.file.name
             });
 
             clearInterval(progressInterval);

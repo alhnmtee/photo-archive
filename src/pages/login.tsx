@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -21,10 +22,18 @@ import { loginSchema, LoginFormData } from '../schemas/auth.schema';
 import { useAuth } from '../contexts/AuthContext';
 
 export const Login = () => {
-  const { signInWithEmail, signInWithGoogle, signInWithApple } = useAuth();
+  const { signInWithEmail, signInWithGoogle, signInWithApple,currentUser } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
   const [loading, setLoading] = useState(false);
+  
+
+  useEffect(() => {
+    if (currentUser) {
+      navigate('/dashboard');
+    }
+  }, [currentUser, navigate]);
+
 
   const {
     register,
@@ -57,7 +66,7 @@ export const Login = () => {
       setLoading(true);
       console.log('Starting login process...');
       
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      //await new Promise(resolve => setTimeout(resolve, 1000));
 
       const user = await signInWithEmail(data.email, data.password);
       console.log('Login successful, user:', user);
