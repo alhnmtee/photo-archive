@@ -1,50 +1,101 @@
-# React + TypeScript + Vite
+# Aile Fotoğraf Arşivi
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Bu proje, ailelerin fotoğraflarını yıllara göre düzenleyip arşivleyebilecekleri, aile üyelerini etiketleyebilecekleri ve aile ağacı oluşturabilecekleri bir web uygulamasıdır.
 
-Currently, two official plugins are available:
+## 🚀 Özellikler
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- 📸 Fotoğraf yükleme ve yönetimi
+- 👥 Kişi etiketleme sistemi
+- 📅 Yıllara göre fotoğraf organizasyonu
+- 🗂️ Albüm oluşturma ve yönetimi
+- 🌳 Aile ağacı görüntüleme
+- 💬 Fotoğraflara yorum yapabilme
+- 🌓 Açık/Koyu tema desteği
+- 🔒 Kullanıcı yetkilendirme sistemi
 
-## Expanding the ESLint configuration
+## 🛠️ Kullanılan Teknolojiler
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+- React
+- TypeScript
+- Chakra UI
+- React Router
+- React Query (TanStack Query)
+- Firebase Authentication
+- Vite
 
-- Configure the top-level `parserOptions` property like this:
+## 💻 Kurulum
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+1. Projeyi klonlayın:
+```bash
+git clone https://github.com/kullanici-adi/aile-fotograf-arsivi.git
+cd aile-fotograf-arsivi
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
-
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
-
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+2. Bağımlılıkları yükleyin:
+```bash
+npm install
 ```
+
+3. `.env` dosyasını oluşturun:
+```env
+VITE_STORAGE_API_URL=http://localhost:3000
+VITE_FIREBASE_API_KEY=your-api-key
+VITE_FIREBASE_AUTH_DOMAIN=your-auth-domain
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-storage-bucket
+VITE_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
+VITE_FIREBASE_APP_ID=your-app-id
+```
+
+4. Uygulamayı başlatın:
+```bash
+npm run dev
+```
+
+## 📁 Proje Yapısı
+
+```
+src/
+├── components/         # Yeniden kullanılabilir bileşenler
+├── contexts/          # Context API tanımlamaları
+├── pages/             # Sayfa bileşenleri
+├── services/          # API servisleri
+├── config/            # Yapılandırma dosyaları
+└── utils/             # Yardımcı fonksiyonlar
+```
+
+## 🔑 Anahtar Bileşenler
+
+- **PhotoGrid**: Fotoğrafları grid görünümünde sergiler
+- **PhotoViewer**: Fotoğraf detay görüntüleyici
+- **DashboardLayout**: Ana sayfa düzeni
+- **SimpleFamilyTree**: Aile ağacı görüntüleyici
+- **PhotoUploadModal**: Fotoğraf yükleme arayüzü
+
+## 📱 Görünüm Modları
+
+Uygulama aşağıdaki görünüm modlarını destekler:
+- Grid Görünümü
+- Liste Görünümü
+- Zaman Çizelgesi
+- Takvim Görünümü
+- Kişilere Göre Görünüm
+
+## 🔐 Kullanıcı Yetkilendirmesi
+
+Uygulama şu giriş yöntemlerini destekler:
+- Email/Şifre ile giriş
+- Google ile giriş
+- Apple ile giriş
+
+## 🤝 Katkıda Bulunma
+
+1. Bu projeyi fork edin
+2. Feature branch'i oluşturun (`git checkout -b feature/amazing-feature`)
+3. Değişikliklerinizi commit edin (`git commit -m 'feat: Add amazing feature'`)
+4. Branch'inizi push edin (`git push origin feature/amazing-feature`)
+5. Pull Request oluşturun
+
+## 📄 Lisans
+
+Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICENSE) dosyasına bakınız.
